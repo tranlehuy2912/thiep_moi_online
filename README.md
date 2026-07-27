@@ -74,35 +74,26 @@ API → **0 byte thêm vào bundle**, và vì Firestore có CORS nên đọc đ�
    },
    ```
 
-5. **Đặt Security Rules** — bước này bắt buộc, `Firestore Database` → tab `Rules`:
+5. **Deploy Security Rules** — bước này bắt buộc, không phải tuỳ chọn:
 
-   ```js
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /rsvp/{doc} {
-         // chỉ cho GHI THÊM, và phải đúng dạng
-         allow create: if request.resource.data.keys().hasOnly(
-                            ['name','attend','which','eventLabel','count','wish','at'])
-                       && request.resource.data.name is string
-                       && request.resource.data.name.size() > 0
-                       && request.resource.data.name.size() < 100
-                       && request.resource.data.wish.size() < 1000
-                       && request.resource.data.count is int
-                       && request.resource.data.count >= 0
-                       && request.resource.data.count <= 20;
-         // KHÔNG cho đọc / sửa / xoá từ phía web
-         allow read, update, delete: if false;
-       }
-     }
-   }
+   ```bash
+   npm run rsvp:login     # đăng nhập Google (mở browser, chỉ làm 1 lần)
+   npm run rsvp:rules     # đẩy firestore.rules lên project
    ```
 
-   ⚠️ Đừng dùng chế độ test mode mặc định (`allow read, write: if true`): `apiKey` nằm
-   công khai trong mã nguồn trang, ai xem cũng thấy — với rules mở, người ta **đọc được
-   toàn bộ danh sách khách và xoá sạch**. Rules trên chỉ cho ghi thêm, giới hạn đúng 7
-   trường và giới hạn độ dài, nên trường hợp xấu nhất chỉ là bị chèn rác — mà bạn xoá
-   được trong console.
+   Rules nằm trong [`firestore.rules`](firestore.rules) — để trong repo chứ không dán tay
+   vào Console, để còn xem lại được lịch sử thay đổi và biết chắc trên server đang chạy
+   đúng cái gì.
+
+   ⚠️ Vì sao bắt buộc: `apiKey` của Firebase nằm **công khai** trong mã nguồn trang, ai mở
+   DevTools cũng thấy — đó là thiết kế bình thường của Firebase, nên toàn bộ bảo mật dồn
+   vào file rules. Để `allow read, write: if true` là bất kỳ ai có link thiệp đều **đọc
+   được cả danh sách khách và xoá sạch**. Rules trong repo chỉ cho *ghi thêm*, khoá đúng 7
+   trường và giới hạn độ dài, nên trường hợp xấu nhất chỉ là bị chèn rác — mà bạn xoá được
+   trong Console.
+
+   Không muốn dùng CLI thì mở Console → `Firestore Database` → tab `Rules` → dán nội dung
+   `firestore.rules` → **Publish**. Sửa xong mà không bấm Publish thì không có tác dụng.
 
 6. **Kiểm tra ngay bằng một lệnh** — không phải mở form trên điện thoại:
 
@@ -155,9 +146,30 @@ Chạy `src/lib/rsvp.test.mjs` — kiểm nhãn tiệc (kể cả lựa chọn "
 khách, và việc chuyển sang kiểu dữ liệu của Firestore REST (số nguyên **phải** là chuỗi,
 đưa số thật vào là Firestore trả 400).
 
-> Cố ý **không** có "bảng lời chúc" hiện trên trang. Không có backend thì bảng đó chỉ đọc
-> được từ `localStorage` của chính máy khách — mỗi người chỉ thấy lời chúc của mình, trông
-> như trang bị lỗi. Ô nhập lời chúc vẫn có và vẫn được gửi kèm phản hồi.
+### Bảng lời chúc công khai
+
+Lời chúc khách viết được hiện lại ngay trên trang, dưới form. Nó đọc từ collection
+**`wishes`** — collection RIÊNG, tách hẳn khỏi `rsvp`.
+
+Đây là chỗ dễ làm sai nhất của tính năng này: `rsvp` chứa cả **danh sách khách** (ai đến,
+ai không, đi mấy người). Nếu dùng chung một collection rồi mở `allow read` để hiện lời
+chúc thì bất kỳ ai có link thiệp đều tải về được toàn bộ danh sách khách. Nên mỗi lượt gửi
+ghi vào **hai** chỗ:
+
+| Collection | Trường | Quyền |
+|---|---|---|
+| `rsvp` | name, attend, which, eventLabel, count, wish, at | chỉ ghi thêm — **không cho đọc** |
+| `wishes` | **chỉ** name, wish, at | ghi thêm + **cho đọc công khai** |
+
+Có một test chốt riêng cho việc này (`lời chúc gửi lên bảng CHỈ mang 3 trường`) để sau này
+không ai vô tình thêm `attend`/`count` vào `wishes`.
+
+Khách không viết gì thì không lưu lời chúc rỗng. Cần bỏ lời chúc nào thì xoá trong Firebase
+Console — rules không cho xoá từ web.
+
+> ⚠️ Ai có link thiệp cũng gửi được lời chúc, không qua kiểm duyệt. Với thiệp cưới chia sẻ
+> trong vòng thân hữu thì bình thường; rules đã giới hạn độ dài (tên < 100, lời chúc < 1000
+> ký tự) nên tệ nhất là bị chèn rác, và bạn xoá được trong Console.
 
 ---
 

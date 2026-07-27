@@ -592,6 +592,33 @@ section.panel {
   color: var(--gold-light);
 }
 
+/* --- Bảng lời chúc ------------------------------------------------------- */
+.wishes {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+.wish {
+  padding: 16px 18px;
+  border: 1px solid rgba(231, 190, 114, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 14px;
+  line-height: 1.6;
+  /* lời chúc là chữ khách tự viết: có thể là một dòng dài không dấu cách,
+     không có cái này là nó tràn ra khỏi khung */
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.wish b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--gold-light);
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+
 /* ==========================================================================
    Outro & footer
    ========================================================================== */

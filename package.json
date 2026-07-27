@@ -8,6 +8,8 @@
     "dev:tunnel": "VITE_TUNNEL=1 vite",
     "test": "node --test src/lib/*.test.mjs",
     "test:rsvp": "node scripts/test-rsvp.mjs",
+    "rsvp:login": "npx --yes firebase-tools@13 login",
+    "rsvp:rules": "npx --yes firebase-tools@13 deploy --only firestore:rules",
     "build": "vite build",
     "preview": "vite preview"
   },

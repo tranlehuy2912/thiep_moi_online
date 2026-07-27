@@ -51,12 +51,66 @@ export function isFirebaseReady(fb) {
   return !!(fb && fb.projectId && fb.apiKey && fb.collection)
 }
 
-export function firestoreUrl(fb) {
+function docsBase(fb, collection) {
   return (
     `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(fb.projectId)}` +
-    `/databases/(default)/documents/${encodeURIComponent(fb.collection)}` +
-    `?key=${encodeURIComponent(fb.apiKey)}`
+    `/databases/(default)/documents/${encodeURIComponent(collection)}`
   )
+}
+
+export function firestoreUrl(fb) {
+  return `${docsBase(fb, fb.collection)}?key=${encodeURIComponent(fb.apiKey)}`
+}
+
+// ---------------------------------------------------------------------------
+//  BẢNG LỜI CHÚC — collection RIÊNG, tách hẳn khỏi `rsvp`
+//
+//  Không dùng chung một collection và mở quyền đọc, vì `rsvp` chứa cả danh sách
+//  khách: ai đến, ai không, đi mấy người. Mở đọc collection đó ra là bất kỳ ai
+//  có link thiệp đều tải về được toàn bộ danh sách khách mời.
+//
+//  `wishes` chỉ mang 3 trường — tên và lời chúc, những thứ vốn dĩ để cho mọi
+//  người đọc. Cho đọc công khai đúng collection này là an toàn.
+// ---------------------------------------------------------------------------
+export const WISHES_COLLECTION = 'wishes'
+
+// Trả về null nếu khách không viết gì — không lưu lời chúc rỗng lên bảng.
+export function wishPayload(payload) {
+  const wish = (payload.wish || '').trim()
+  if (!wish) return null
+  return { name: payload.name, wish, at: payload.at }
+}
+
+export function wishesWriteUrl(fb) {
+  return `${docsBase(fb, WISHES_COLLECTION)}?key=${encodeURIComponent(fb.apiKey)}`
+}
+
+export function wishesListUrl(fb, pageSize = 60) {
+  // orderBy của Firestore REST cần khoảng trắng đã encode: "at desc"
+  return (
+    `${docsBase(fb, WISHES_COLLECTION)}?key=${encodeURIComponent(fb.apiKey)}` +
+    `&pageSize=${pageSize}&orderBy=${encodeURIComponent('at desc')}`
+  )
+}
+
+// Đọc ngược từ kiểu tường minh của Firestore về object thường.
+// Viết phòng thủ: collection rỗng thì Firestore trả về `{}` chứ không có
+// `documents`, và document cũ có thể thiếu trường.
+export function parseWishes(json) {
+  const docs = json && Array.isArray(json.documents) ? json.documents : []
+  return docs
+    .map((d) => {
+      const f = (d && d.fields) || {}
+      return {
+        id: typeof d.name === 'string' ? d.name.split('/').pop() : '',
+        name: f.name?.stringValue || '',
+        wish: f.wish?.stringValue || '',
+        at: f.at?.timestampValue || '',
+      }
+    })
+    .filter((w) => w.wish && w.name)
+    // sắp lại ở client: orderBy có thể im lặng bỏ qua document thiếu trường `at`
+    .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
 }
 
 // Firestore REST đòi kiểu tường minh cho từng trường: {"stringValue": "..."}.

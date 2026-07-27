@@ -9,6 +9,10 @@ import {
   isFirebaseReady,
   firestoreUrl,
   toFirestoreFields,
+  wishPayload,
+  wishesWriteUrl,
+  wishesListUrl,
+  parseWishes,
 } from '../lib/rsvp.js'
 
 const NAMES = `${COUPLE.groom.name} & ${COUPLE.bride.name}`
@@ -281,6 +285,49 @@ function Choice({ on, onClick, children }) {
   )
 }
 
+// Bảng lời chúc công khai. Đọc từ collection `wishes` — collection này CHỈ có
+// tên + lời chúc, không mang thông tin tham dự, nên cho đọc công khai là an toàn.
+function WishWall({ reloadKey }) {
+  const [wishes, setWishes] = useState([])
+
+  useEffect(() => {
+    if (!isFirebaseReady(RSVP.firebase)) return
+    let alive = true
+    fetch(wishesListUrl(RSVP.firebase))
+      .then((r) => {
+        if (!r.ok) throw new Error(`wishes ${r.status}`)
+        return r.json()
+      })
+      .then((json) => {
+        if (alive) setWishes(parseWishes(json))
+      })
+      .catch((err) => console.error('[RSVP] không đọc được bảng lời chúc:', err))
+    return () => {
+      alive = false
+    }
+  }, [reloadKey])
+
+  // Chưa ai chúc thì ẩn hẳn khối này, không để lại khung rỗng trơ trọi
+  if (!wishes.length) return null
+
+  return (
+    <>
+      <div className="ornament">✦</div>
+      <p className="eyebrow reveal" style={{ textAlign: 'center' }}>
+        {wishes.length} lời chúc từ thân hữu
+      </p>
+      <div className="wishes">
+        {wishes.map((w) => (
+          <div className="wish reveal" key={w.id}>
+            <b>{w.name}</b>
+            {w.wish}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 export function Rsvp() {
   const [form, setForm] = useState({
     name: '',
@@ -294,6 +341,8 @@ export function Rsvp() {
   const [busy, setBusy] = useState(false)
   // true = gửi KHÔNG thành công. Chỉ hiện lời cảm ơn khi thật sự đã ghi được.
   const [failed, setFailed] = useState(false)
+  // đổi giá trị này để WishWall tải lại, cho khách thấy ngay lời chúc mình vừa gửi
+  const [justWished, setJustWished] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const pick = (k, v) => () => setForm((f) => ({ ...f, [k]: v }))
@@ -320,6 +369,23 @@ export function Rsvp() {
         // Firestore có CORS nên đọc được kết quả thật — sai rules hay sai
         // projectId là biết ngay, không âm thầm mất phản hồi của khách.
         if (!res.ok) throw new Error(`Firestore ${res.status}`)
+
+        // Lời chúc ghi thêm sang collection `wishes` để hiện lên bảng công khai.
+        // Cố ý KHÔNG để lỗi ở đây làm hỏng cả lượt gửi: hồi âm đã vào `rsvp`
+        // an toàn rồi, bảng lời chúc chỉ là phần trang trí.
+        const wish = wishPayload(payload)
+        if (wish) {
+          fetch(wishesWriteUrl(RSVP.firebase), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(toFirestoreFields(wish)),
+          })
+            .then((r) => {
+              if (!r.ok) throw new Error(`wishes ${r.status}`)
+              setJustWished(true) // để bảng lời chúc tải lại
+            })
+            .catch((err) => console.error('[RSVP] không ghi được lời chúc:', err))
+        }
       } catch (err) {
         console.error('[RSVP] gửi lên Firestore thất bại:', err)
         setFailed(true)
@@ -495,6 +561,8 @@ export function Rsvp() {
           </button>
         </form>
       )}
+
+      <WishWall reloadKey={justWished} />
     </Panel>
   )
 }

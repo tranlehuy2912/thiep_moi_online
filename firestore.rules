@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Security Rules cho collection nhận hồi âm RSVP.
+//
+// Vì sao phải chặt: `apiKey` của Firebase nằm CÔNG KHAI trong mã nguồn trang —
+// ai mở DevTools cũng thấy. Đó là thiết kế bình thường của Firebase, nên toàn bộ
+// bảo mật dồn vào file này. Để `allow read, write: if true` là bất kỳ ai có link
+// thiệp đều đọc được cả danh sách khách và xoá sạch.
+//
+// Deploy: npm run rsvp:rules   (xem README, mục "Nhận phản hồi RSVP")
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /rsvp/{doc} {
+      // CHỈ cho ghi thêm, và phải đúng dạng form đang gửi.
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['name', 'attend', 'which', 'eventLabel', 'count', 'wish', 'at'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() < 100
+                    && request.resource.data.wish is string
+                    && request.resource.data.wish.size() < 1000
+                    && request.resource.data.count is int
+                    && request.resource.data.count >= 0
+                    && request.resource.data.count <= 20;
+
+      // Đọc / sửa / xoá: chỉ làm trong Firebase Console, không mở ra web.
+      // ⚠️ Đừng mở `read` ở đây. Collection này chứa cả danh sách khách — ai
+      // đến, ai không, đi mấy người. Mở đọc là ai có link thiệp cũng tải về được.
+      allow read, update, delete: if false;
+    }
+
+    // Bảng lời chúc hiện công khai trên trang.
+    // Tách riêng khỏi `rsvp` đúng vì lý do trên: ở đây CHỈ có tên và lời chúc,
+    // những thứ vốn để cho mọi người đọc.
+    match /wishes/{doc} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['name', 'wish', 'at'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() < 100
+                    && request.resource.data.wish is string
+                    && request.resource.data.wish.size() > 0
+                    && request.resource.data.wish.size() < 1000;
+
+      // Đã chúc rồi thì không sửa/xoá được từ web. Cần bỏ lời chúc nào thì
+      // xoá trong Firebase Console.
+      allow update, delete: if false;
+    }
+
+    // Mọi đường dẫn khác: chặn hết.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

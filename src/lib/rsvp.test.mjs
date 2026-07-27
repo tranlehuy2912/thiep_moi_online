@@ -9,6 +9,10 @@ import {
   isFirebaseReady,
   firestoreUrl,
   toFirestoreFields,
+  wishPayload,
+  wishesWriteUrl,
+  wishesListUrl,
+  parseWishes,
 } from './rsvp.js'
 import { EVENTS } from '../config.js'
 
@@ -108,5 +112,55 @@ test('count = 0 vẫn phải ra integerValue "0", không được rơi thành ch
   const p = buildPayload({ ...base, attend: 'no' }, EVENTS, 'T')
   const { fields } = toFirestoreFields(p)
   assert.deepEqual(fields.count, { integerValue: '0' })
+})
+
+/* --------------------------------------------------- Bảng lời chúc công khai */
+
+test('lời chúc gửi lên bảng CHỈ mang 3 trường, không lẫn thông tin tham dự', () => {
+  const p = buildPayload({ ...base, which: BOTH, party: 'two' }, EVENTS, 'T')
+  const w = wishPayload(p)
+  // đây là chốt an toàn: bảng này đọc công khai, lẫn `attend`/`count` vào là
+  // hở danh sách khách ra ngoài
+  assert.deepEqual(Object.keys(w).sort(), ['at', 'name', 'wish'])
+  assert.equal(w.name, 'Test Khách')
+  assert.equal(w.wish, 'chúc mừng')
+})
+
+test('không viết gì thì không lưu lời chúc rỗng lên bảng', () => {
+  for (const wish of ['', '   ', '\n']) {
+    const p = buildPayload({ ...base, wish }, EVENTS, 'T')
+    assert.equal(wishPayload(p), null, `wish=${JSON.stringify(wish)} mà vẫn lưu`)
+  }
+})
+
+test('URL bảng lời chúc: collection riêng, có sắp xếp', () => {
+  const w = wishesWriteUrl(FB)
+  assert.ok(w.includes('/documents/wishes?key='), w)
+  assert.ok(!w.includes('/documents/rsvp'), 'không được ghi vào collection rsvp')
+
+  const l = wishesListUrl(FB, 30)
+  assert.ok(l.includes('/documents/wishes?key='))
+  assert.ok(l.includes('pageSize=30'))
+  assert.ok(l.includes('orderBy=at%20desc'), l)
+})
+
+test('đọc bảng lời chúc: chịu được dữ liệu thiếu và collection rỗng', () => {
+  // Firestore trả về `{}` khi collection chưa có document nào
+  assert.deepEqual(parseWishes({}), [])
+  assert.deepEqual(parseWishes(null), [])
+  assert.deepEqual(parseWishes({ documents: null }), [])
+
+  const out = parseWishes({
+    documents: [
+      { name: 'p/d/wishes/aaa', fields: { name: { stringValue: 'A' }, wish: { stringValue: 'x' }, at: { timestampValue: '2026-01-01T00:00:00Z' } } },
+      { name: 'p/d/wishes/bbb', fields: { name: { stringValue: 'B' }, wish: { stringValue: 'y' }, at: { timestampValue: '2026-03-01T00:00:00Z' } } },
+      { name: 'p/d/wishes/ccc', fields: { name: { stringValue: 'C' } } }, // thiếu wish → bỏ
+      { name: 'p/d/wishes/ddd', fields: {} }, // rỗng → bỏ
+      {}, // document lạ → bỏ, không được nổ
+    ],
+  })
+  assert.equal(out.length, 2)
+  assert.deepEqual(out.map((w) => w.name), ['B', 'A']) // mới nhất lên trước
+  assert.equal(out[0].id, 'bbb')
 })
 
