@@ -1,0 +1,28 @@
+{
+  "name": "thiep-cuoi-le-huy-nhu-trang",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:tunnel": "VITE_TUNNEL=1 vite",
+    "test": "node --test src/lib/*.test.mjs",
+    "test:rsvp": "node scripts/test-rsvp.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.16.3",
+    "postprocessing": "^6.36.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "sharp": "^0.35.3",
+    "vite": "^5.4.10"
+  }
+}
