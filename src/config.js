@@ -67,8 +67,9 @@ export const EVENTS = [
     lunar: 'Nhằm ngày 10 tháng 08 năm Bính Ngọ',
     timeLabel: '09:00 — Đón khách từ 10:30',
     venue: 'Tư gia nhà gái',
-    address: '',
-    mapQuery: 'Quảng Trị',
+    address: 'Mỹ Thủy, Quảng Trị',
+    coords: '16.774916,107.335467',
+    mapQuery: 'Quảng Trị', // chỉ dùng khi KHÔNG có coords
   },
   {
     id: 'nha-trai',
@@ -79,9 +80,10 @@ export const EVENTS = [
     dateLabel: 'Chủ nhật · 04 tháng 10 năm 2026',
     lunar: 'Nhằm ngày 24 tháng 08 năm Bính Ngọ',
     timeLabel: '07:00 — Đón khách từ 11:00',
-    venue: 'Tư gia nhà trai',
-    address: '',
-    mapQuery: 'Tp. Hồ Chí Minh',
+    venue: 'Nhà Hàng Tiệc Cưới - Trung Tâm Hội Nghị Hương Phố',
+    address: 'A12 Phan Văn Trị - Phường Hạnh Thông - Tp. Hồ Chí Minh',
+    coords: '10.828742101212985,106.68334925775166',
+    mapQuery: 'Tp. Hồ Chí Minh', // chỉ dùng khi KHÔNG có coords
   },
 ]
 
@@ -102,17 +104,18 @@ export const RSVP = {
   // ⚠️ Nhớ đặt Security Rules như README hướng dẫn, nếu không sẽ bị chặn ghi
   //    (hoặc tệ hơn: ai cũng đọc/xoá được danh sách khách).
   firebase: {
-    projectId: '', // ví dụ 'thiep-cuoi-huy-trang'
-    apiKey: '', // Web API key trong Project settings
+    projectId: 'wedding-29ced',
+    apiKey: 'AIzaSyDxvgg7B9xE4AKDdJW_36XVkXm0tJI7I38',
     collection: 'rsvp',
   },
 
   // ── Cách 2: Google Apps Script / Formspree ───────────────────────────────
   endpoint: '',
 
-  // ── Cách 3 (mặc định): mở sẵn email cho khách bấm gửi ────────────────────
-  // Cũng là phương án dự phòng khi hai cách trên gửi lỗi.
-  email: 'huytl@cnv.vn', // ⚠️ đổi sang email bạn muốn nhận phản hồi
+  // Không cấu hình cách nào ở trên → form báo lỗi "Tín hiệu trục trặc bất
+  // thành" kèm nút Thử lại. KHÔNG có phương án email dự phòng: `mailto:` chỉ mở
+  // app mail rồi trông chờ khách tự bấm Gửi, mà trong WebView Zalo/Messenger
+  // (nơi phần lớn khách mở link) nó thường không mở gì cả → mất hồi âm.
 }
 
 // Mừng cưới — bật lên sau khi điền số tài khoản thật.

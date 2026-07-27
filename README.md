@@ -30,7 +30,6 @@ Những chỗ **bắt buộc** phải sửa trước khi gửi cho khách:
 | `EVENTS[].lunar` | ngày âm tạm tính | ngày âm đúng |
 | `EVENTS[].timeLabel` | 11:00 | giờ thật |
 | `GIFT.enabled` | `false` | `true` sau khi điền số tài khoản thật |
-| `RSVP.email` | `huytl@cnv.vn` | email bạn muốn nhận phản hồi |
 | `RSVP.firebase` | trống | điền để lưu phản hồi vào Firestore (xem bên dưới) |
 
 ---
@@ -43,10 +42,16 @@ Form thử lần lượt 3 cách, cách nào được cấu hình trước thì 
 |---|---|---|---|
 | 1 | **Firebase Firestore** ⭐ | `firebase.projectId` + `apiKey` + `collection` | ✅ có |
 | 2 | Google Apps Script / Formspree | `endpoint` | ❌ không |
-| 3 | Mở email (mặc định) | `email` | — |
 
-Cách 1 và 2 nếu gửi lỗi sẽ **tự rơi về email**, kèm thông báo thật cho khách chứ không
-hiện "đã nhận được" rồi âm thầm mất phản hồi.
+**Phải cấu hình một trong hai.** Không cấu hình gì thì form báo lỗi *"Tín hiệu trục trặc
+bất thành"* kèm nút Thử lại — và ghi lý do vào console cho bạn thấy.
+
+Cố ý **không** có phương án email dự phòng. `mailto:` không gửi gì cả, nó chỉ mở app mail
+rồi trông chờ khách tự bấm Gửi — mà trong WebView Zalo/Messenger (nơi phần lớn khách mở
+link) nó thường không mở gì. Tệ hơn nữa là trang không thể biết khách đã bấm Gửi hay chưa,
+nên chỉ còn cách hiện "đã nhận được" một cách vô căn cứ.
+
+Nguyên tắc ở đây: **chỉ hiện lời cảm ơn khi thật sự ghi được dữ liệu.**
 
 ### ⭐ Cách 1 — Firebase Firestore
 
@@ -291,7 +296,7 @@ src/
 │   ├── quality.js       dò cấu hình máy, đo FPS
 │   ├── shapes.js        sinh đám mây điểm cho hệ hạt
 │   ├── textures.js      ảnh giữ chỗ + tải ảnh theo nhu cầu
-│   ├── calendar.js      Google Calendar / .ics / Maps / đếm ngược
+│   ├── calendar.js      Google Calendar / chỉ đường / đếm ngược
 │   └── useReveal.js     hiệu ứng hiện dần khi cuộn tới
 ├── three/               các cảnh 3D (xem bảng trên)
 └── ui/

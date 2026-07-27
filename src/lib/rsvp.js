@@ -76,17 +76,3 @@ export function toFirestoreFields(payload) {
   return { fields }
 }
 
-// Nội dung email dự phòng (khi chưa cấu hình gì, hoặc khi gửi lên mạng thất bại)
-export function mailtoUrl(payload, { email, subjectPrefix }) {
-  const body = [
-    `Tên: ${payload.name}`,
-    `Tham dự: ${payload.attend === 'yes' ? 'Có, sẽ đến' : 'Rất tiếc, không đến được'}`,
-    ...(payload.attend === 'yes'
-      ? [`Tiệc: ${payload.eventLabel}`, `Số người: ${payload.count}`]
-      : []),
-    `Lời chúc: ${payload.wish}`,
-  ].join('\n')
-  return `mailto:${email}?subject=${encodeURIComponent(
-    `${subjectPrefix} — ${payload.name}`,
-  )}&body=${encodeURIComponent(body)}`
-}

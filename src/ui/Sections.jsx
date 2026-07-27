@@ -1,7 +1,7 @@
 // Toàn bộ nội dung HTML của thiệp. Canvas 3D nằm dưới, phần này nổi lên trên.
 import { useEffect, useRef, useState } from 'react'
 import { COUPLE, EVENTS, GALLERY, GIFT, RSVP } from '../config.js'
-import { googleCalendarUrl, downloadIcs, mapsUrl, countdown } from '../lib/calendar.js'
+import { googleCalendarUrl, mapsUrl, countdown } from '../lib/calendar.js'
 import { registerSection } from '../lib/scroll.js'
 import {
   BOTH,
@@ -9,7 +9,6 @@ import {
   isFirebaseReady,
   firestoreUrl,
   toFirestoreFields,
-  mailtoUrl,
 } from '../lib/rsvp.js'
 
 const NAMES = `${COUPLE.groom.name} & ${COUPLE.bride.name}`
@@ -39,14 +38,10 @@ export function Hero() {
       </h1>
 
       <p className="tagline reveal" style={{ '--d': '.25s' }}>
-        {/* Từ nay duyên thắm mãi không thôi.<br />
-        Tiệc cưới hai nơi đã sẵn rồi.<br />
-        Tháng Chín hai mươi nhà gái đợi.<br />
-        Tháng Mười mùng bốn bước chung đôi.<br /> */}
-        Cùng một nghề chung, gõ chữ lâu.<br />
+        <br />Cùng một nghề chung, gõ chữ lâu.<br />
         Quen nhau từ những buổi canh thâu.<br />
         Mùng bốn tháng chín, tay cùng nắm.<br />
-        Mấy bận chua cay, nghẹn nỗi sầu.<br />
+        Mấy bận chua cay, nghẹn nỗi sầu.<br /><br />
         Vá lỗi chương trình không mấy khó.<br />
         Giữ tình hai đứa có dễ đâu.<br />
         Vẫn trong tháng chín, thêm lần nữa.<br />
@@ -113,9 +108,6 @@ function Countdown({ ev }) {
         <a className="btn" href={googleCalendarUrl(ev, NAMES)} target="_blank" rel="noreferrer">
           Google Calendar
         </a>
-        <button className="btn ghost" onClick={() => downloadIcs(ev, NAMES)} data-interactive>
-          Tải .ics
-        </button>
       </div>
     </div>
   )
@@ -125,7 +117,7 @@ export function SaveTheDate() {
   return (
     <Panel id="save">
       <h2 className="display reveal" style={{ fontSize: 'clamp(28px,5.5vw,52px)' }}>
-        Đếm ngược giờ trôi
+        Đếm ngược
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
@@ -209,14 +201,18 @@ export function Details() {
   return (
     <Panel id="details">
       <h2 className="display reveal" style={{ fontSize: 'clamp(28px,5.5vw,52px)' }}>
-        Hai Ngày Vui, Một Lời Mời
+        Vu Quy - Thành Hôn
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
-        Hai ngày, hai phía, ở hai nơi.<br />
+        {/* Hai ngày, hai phía, ở hai nơi.<br />
         Thiệp hồng trao tay, gửi nụ cười.<br />
         Bạn ghé bên nào mình cũng đợi,<br />
-        Chung ly rượu chúc, vạn ngày vui.
+        Chung ly rượu chúc, vạn ngày vui. */}
+        Từ nay duyên thắm mãi không thôi,<br />
+        Tiệc cưới hai nơi đã sẵn rồi.<br />
+        Tháng Chín hai mươi nhà gái đợi,<br />
+        Tháng Mười mùng bốn bước chung đôi.
       </p>
 
       <div className="events">
@@ -296,8 +292,8 @@ export function Rsvp() {
   })
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
-  // khi gửi lên mạng thất bại: giữ lại link email để khách còn đường phản hồi
-  const [fallback, setFallback] = useState('')
+  // true = gửi KHÔNG thành công. Chỉ hiện lời cảm ơn khi thật sự đã ghi được.
+  const [failed, setFailed] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const pick = (k, v) => () => setForm((f) => ({ ...f, [k]: v }))
@@ -308,15 +304,11 @@ export function Rsvp() {
     e.preventDefault()
     if (!form.name.trim() || busy) return
     setBusy(true)
-    setFallback('')
+    setFailed(false)
 
     // Dựng dữ liệu gửi đi bằng hàm thuần trong lib/rsvp.js — chỗ đó có test
     // (node --test src/lib/rsvp.test.mjs), vì đây là phần dễ sai nhất của form.
     const payload = buildPayload(form, EVENTS, new Date().toISOString())
-    const mailto = mailtoUrl(payload, {
-      email: RSVP.email,
-      subjectPrefix: `RSVP đám cưới ${NAMES}`,
-    })
 
     if (isFirebaseReady(RSVP.firebase)) {
       try {
@@ -330,7 +322,7 @@ export function Rsvp() {
         if (!res.ok) throw new Error(`Firestore ${res.status}`)
       } catch (err) {
         console.error('[RSVP] gửi lên Firestore thất bại:', err)
-        setFallback(mailto)
+        setFailed(true)
       }
     } else if (RSVP.endpoint) {
       try {
@@ -344,11 +336,14 @@ export function Rsvp() {
         })
       } catch (err) {
         console.error('[RSVP] gửi lên endpoint thất bại:', err)
-        setFallback(mailto)
+        setFailed(true)
       }
     } else {
-      // Chưa cấu hình gì: mở sẵn email đã soạn nội dung để khách bấm gửi.
-      window.location.href = mailto
+      // Chưa cấu hình chỗ nhận → coi như thất bại, KHÔNG hiện lời cảm ơn.
+      console.error(
+        '[RSVP] chưa cấu hình chỗ nhận phản hồi. Điền RSVP.firebase trong src/config.js — xem README.',
+      )
+      setFailed(true)
     }
 
     setSent(true)
@@ -358,40 +353,44 @@ export function Rsvp() {
   return (
     <Panel id="rsvp">
       <h2 className="display reveal" style={{ fontSize: 'clamp(28px,5.5vw,52px)' }}>
-        Gửi Lời Hẹn Chốn Chung Vui
+        Hồi Âm
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
-        Để tình đón tiếp chu toàn.<br />
+        {/* Để tình đón tiếp chu toàn.<br />
         Mâm bàn tươm tất đón đoàn bạn thân.<br />
         Xin đừng ngại ngần phân vân,<br />
-        Trước ngày mười chín nhắn trân trọng lời.
+        Trước ngày mười chín nhắn trân trọng lời. */}
+        Hai ngày, hai tiệc, hai nơi,<br />
+        Tiện đường anh chị ghé chơi hôm nào.<br />
+        Chỉ cần một chữ gửi trao,<br />
+        Là bên này biết dọn bao nhiêu bàn.
       </p>
 
       {sent ? (
         <div className="card reveal" style={{ marginTop: 26, textAlign: 'center' }}>
-          {fallback ? (
-            /* Gửi lên mạng hỏng. Nói thật và đưa đường khác — nếu cứ hiện "đã
-               nhận được" thì phản hồi của khách mất luôn mà không ai biết. */
+          {failed ? (
+            /* Phải có nút thử lại. `failed` nghĩa là hồi âm CHƯA tới tay — chỉ
+               hiện một dòng báo lỗi rồi để đó là khách hết đường phản hồi.
+               Bấm thử lại thì quay về form, dữ liệu đã điền vẫn còn nguyên. */
             <>
               <h3 className="script" style={{ fontSize: 28, margin: 0 }}>
-                Đường truyền trục trặc mất rồi
+                Tín hiệu trục trặc bất thành
               </h3>
               <p className="lead" style={{ margin: '10px auto 18px' }}>
-                Chúng mình chưa nhận được phản hồi của bạn. Bạn gửi giúp qua email nhé, nội
-                dung đã điền sẵn hết rồi.
+                Hồi âm chưa tới tay chúng mình. Xin thân hữu thử lại giúp một lần nữa.
               </p>
-              <a className="btn solid" href={fallback}>
-                Gửi bằng email
-              </a>
+              <button className="btn solid" onClick={() => setSent(false)} data-interactive>
+                Thử lại
+              </button>
             </>
           ) : (
             <>
               <h3 className="script" style={{ fontSize: 30, margin: 0 }}>
-                Cảm ơn bạn thật nhiều!
+                Đa tạ thân hữu!
               </h3>
               <p className="lead" style={{ margin: '10px auto 0' }}>
-                Chúng mình đã nhận được phản hồi. Hẹn gặp bạn trong ngày vui nhé.
+                Kính hẹn tương hội trong ngày đại hỷ!
               </p>
             </>
           )}
@@ -450,13 +449,13 @@ export function Rsvp() {
                 <label>Tùy tùng thân hữu đồng hành?</label>
                 <div className="choices">
                   <Choice on={form.party === 'one'} onClick={pick('party', 'one')}>
-                    Độc hành quang lâm.
+                    Độc hành quang lâm
                   </Choice>
                   <Choice on={form.party === 'two'} onClick={pick('party', 'two')}>
-                    Song hành tương hội.
+                    Song hành tương hội
                   </Choice>
                   <Choice on={form.party === 'other'} onClick={pick('party', 'other')}>
-                    Gia quyến đồng hành.
+                    Gia quyến đồng hành
                   </Choice>
                 </div>
 
@@ -508,22 +507,19 @@ export function Outro() {
       {/* chừa chỗ cho đôi nhẫn 3D ở nửa trên */}
       <div className="hero-space" aria-hidden="true" />
 
-      <h2 className="thanks reveal">Lời Tạ Tình Sau Trang Chữ </h2>
+      <h2 className="thanks reveal">Cảm Tạ</h2>
       <p className="lead reveal" style={{ margin: '14px auto 0' }}>
-        Cảm ơn mấy bạn, bớt thời gian.<br />
+        Cảm ơn mấy bạn, bớt thời gian,<br />
         Đọc hết trăm ngàn, ý chứa chan.<br />
-        Tiệc cưới đôi nơi, bày cỗ đợi.<br />
+        Tiệc cưới đôi nơi, bày cỗ đợi,<br />
         Ngày vui có bạn, trọn bình an.
       </p>
 
       <div className="ornament">✦</div>
 
       <h3 className="display gold-text reveal" style={{ fontSize: 'clamp(26px,6vw,58px)' }}>
-        {COUPLE.groom.name.toUpperCase()} ♥ {COUPLE.bride.name.toUpperCase()}
+        {COUPLE.groom.name.toUpperCase()} ♥ <br />{COUPLE.bride.name.toUpperCase()}
       </h3>
-      <p className="script reveal" style={{ fontSize: 'clamp(15px,2.4vw,20px)', marginTop: 6 }}>
-        {COUPLE.tagline}
-      </p>
     </Panel>
   )
 }

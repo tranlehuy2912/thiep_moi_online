@@ -1,4 +1,4 @@
-// Link "Thêm vào lịch" — Google Calendar cho web, file .ics cho iPhone/Outlook.
+// Link "Thêm vào lịch" (Google Calendar), link chỉ đường, và đếm ngược.
 
 function pad(n) {
   return String(n).padStart(2, '0')
@@ -27,37 +27,30 @@ export function googleCalendarUrl(ev, coupleNames) {
     text: `${ev.title} — ${coupleNames}`,
     dates: `${toUtcStamp(ev.date)}/${toUtcStamp(endOf(ev.date))}`,
     details: `${ev.host}\n${ev.dateLabel} · ${ev.timeLabel}`,
-    location: `${ev.venue}, ${ev.address}`,
+    location: locationText(ev),
   })
   return `https://calendar.google.com/calendar/render?${p.toString()}`
 }
 
-export function downloadIcs(ev, coupleNames) {
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//thiep-cuoi//VN',
-    'BEGIN:VEVENT',
-    `UID:${ev.id}-${toUtcStamp(ev.date)}@thiep-cuoi`,
-    `DTSTAMP:${toUtcStamp(new Date())}`,
-    `DTSTART:${toUtcStamp(ev.date)}`,
-    `DTEND:${toUtcStamp(endOf(ev.date))}`,
-    `SUMMARY:${ev.title} — ${coupleNames}`,
-    `DESCRIPTION:${ev.host} · ${ev.timeLabel}`,
-    `LOCATION:${ev.venue}\\, ${ev.address}`,
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ]
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${ev.id}.ics`
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+
+// Chuỗi địa điểm cho lịch: có toạ độ thì kèm vào để ứng dụng lịch bấm ra được
+// đúng điểm ghim, không phải đoán theo tên.
+export function locationText(ev) {
+  return [ev.venue, ev.address, ev.coords].filter(Boolean).join(', ')
 }
 
+// Nút "Chỉ đường" → mở dẫn đường từ vị trí hiện tại của khách.
+//
+// Có `coords` thì luôn ưu tiên: nó trỏ đúng điểm ghim. Tìm theo tên kiểu
+// "Tư gia nhà gái Quảng Trị" thì Google chẳng biết đó là đâu.
+//
+// Cố ý KHÔNG lưu link rút gọn maps.app.goo.gl vào config: link đó có thể đổi
+// hoặc hết hiệu lực, còn toạ độ thì vĩnh viễn đúng. Lấy toạ độ từ link chia sẻ
+// một lần rồi lưu lại là xong.
 export function mapsUrl(ev) {
+  if (ev.coords) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ev.coords)}`
+  }
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${ev.venue} ${ev.address} ${ev.mapQuery || ''}`.trim(),
   )}`

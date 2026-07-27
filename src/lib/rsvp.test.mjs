@@ -9,7 +9,6 @@ import {
   isFirebaseReady,
   firestoreUrl,
   toFirestoreFields,
-  mailtoUrl,
 } from './rsvp.js'
 import { EVENTS } from '../config.js'
 
@@ -111,12 +110,3 @@ test('count = 0 vẫn phải ra integerValue "0", không được rơi thành ch
   assert.deepEqual(fields.count, { integerValue: '0' })
 })
 
-test('link email dự phòng có đủ thông tin', () => {
-  const p = buildPayload({ ...base, which: BOTH, party: 'two' }, EVENTS, 'T')
-  const u = mailtoUrl(p, { email: 'a@b.com', subjectPrefix: 'RSVP' })
-  const decoded = decodeURIComponent(u)
-  assert.ok(u.startsWith('mailto:a@b.com?'))
-  assert.ok(decoded.includes('Test Khách'))
-  assert.ok(decoded.includes('Số người: 2'))
-  assert.ok(decoded.includes('chúc mừng'))
-})
