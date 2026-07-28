@@ -43,14 +43,14 @@ export function Hero() {
       </h1>
 
       <p className="tagline reveal" style={{ '--d': '.25s' }}>
-        Cùng một nghề chung, gõ chữ lâu.<br />
-        Quen nhau từ những buổi canh thâu.<br />
-        Mùng bốn tháng chín, duyên mình khởi.<br />
-        Mấy bận chua cay, nghẹn nỗi sầu.<br /><br />
-        Vá lỗi chương trình không mấy khó.<br />
-        Giữ tình hai đứa có dễ đâu.<br />
-        Vẫn trong tháng chín, thêm lần nữa.<br />
-        Đến buổi hai mươi, xin rước dâu.
+        Cùng một nghề chung, gõ chữ lâu<br />
+        Quen nhau từ những buổi canh thâu<br />
+        Mùng bốn tháng chín, duyên mình khởi<br />
+        Mấy bận chua cay, nghẹn nỗi sầu<br /><br />
+        Vá lỗi chương trình không mấy khó<br />
+        Giữ tình hai đứa có dễ đâu<br />
+        Vẫn trong tháng chín, thêm lần nữa<br />
+        Đến buổi hai mươi, xin rước dâu
       </p>
 
       {/* <div className="dates reveal" style={{ '--d': '.4s' }}>
@@ -126,10 +126,10 @@ export function SaveTheDate() {
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
-        Thời gian tích tắc vòng quay,<br />
-        Lòng nghe rạo rực ngóng ngày thành đôi.<br />
-        Bạn ơi đếm ngược giờ trôi,<br />
-        Hai bên sắm sửa, bồi hồi đợi mong.
+        Thời gian tích tắc vòng quay<br />
+        Lòng nghe rạo rực ngóng ngày thành đôi<br />
+        Bạn ơi đếm ngược giờ trôi<br />
+        Hai bên sắm sửa, bồi hồi đợi mong
       </p>
 
       <div className="countdowns">
@@ -214,10 +214,10 @@ export function Details() {
         Thiệp hồng trao tay, gửi nụ cười.<br />
         Bạn ghé bên nào mình cũng đợi,<br />
         Chung ly rượu chúc, vạn ngày vui. */}
-        Từ nay duyên thắm mãi không thôi,<br />
-        Tiệc cưới hai nơi đã sẵn rồi.<br />
-        Tháng Chín hai mươi nhà gái đợi,<br />
-        Tháng Mười mùng bốn bước chung đôi.
+        Từ nay duyên thắm mãi không thôi<br />
+        Tiệc cưới hai nơi đã sẵn rồi<br />
+        Tháng Chín hai mươi nhà gái đợi<br />
+        Tháng Mười mùng bốn bước chung đôi
       </p>
 
       <div className="events">
@@ -435,10 +435,10 @@ export function Rsvp() {
         Mâm bàn tươm tất đón đoàn bạn thân.<br />
         Xin đừng ngại ngần phân vân,<br />
         Trước ngày mười chín nhắn trân trọng lời. */}
-        Hai ngày, hai tiệc, hai nơi,<br />
-        Tiện đường anh chị ghé chơi hôm nào.<br />
-        Chỉ cần một chữ gửi trao,<br />
-        Là bên này biết dọn bao nhiêu bàn.
+        Hai ngày, hai tiệc, hai nơi<br />
+        Tiện đường anh chị ghé chơi hôm nào<br />
+        Chỉ cần một chữ gửi trao<br />
+        Là bên này biết dọn bao nhiêu bàn
       </p>
 
       {sent ? (
@@ -478,7 +478,7 @@ export function Rsvp() {
               id="rsvp-name"
               value={form.name}
               onChange={set('name')}
-              placeholder="Nguyễn Văn A"
+              placeholder="Phan Tới Bến"
               required
               data-interactive
             />
@@ -585,10 +585,10 @@ export function Outro() {
 
       <h2 className="thanks reveal">Hồi kết</h2>
       <p className="lead reveal" style={{ margin: '14px auto 0' }}>
-        Cảm ơn mấy bạn, bớt thời gian,<br />
-        Đọc hết trăm ngàn, ý chứa chan.<br />
-        Tiệc cưới đôi nơi, bày cỗ đợi,<br />
-        Ngày vui có bạn, trọn bình an.
+        Cảm ơn mấy bạn, bớt thời gian<br />
+        Đọc hết trăm ngàn, ý chứa chan<br />
+        Tiệc cưới đôi nơi, bày cỗ đợi<br />
+        Ngày vui có bạn, trọn bình an
       </p>
 
       <div className="ornament">✦</div>
