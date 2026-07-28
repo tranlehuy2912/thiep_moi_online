@@ -43,9 +43,9 @@ export function Hero() {
       </h1>
 
       <p className="tagline reveal" style={{ '--d': '.25s' }}>
-        <br />Cùng một nghề chung, gõ chữ lâu.<br />
+        Cùng một nghề chung, gõ chữ lâu.<br />
         Quen nhau từ những buổi canh thâu.<br />
-        Mùng bốn tháng chín, tay cùng nắm.<br />
+        Mùng bốn tháng chín, duyên mình khởi.<br />
         Mấy bận chua cay, nghẹn nỗi sầu.<br /><br />
         Vá lỗi chương trình không mấy khó.<br />
         Giữ tình hai đứa có dễ đâu.<br />
