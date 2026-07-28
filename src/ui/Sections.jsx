@@ -14,6 +14,7 @@ import {
   wishesListUrl,
   parseWishes,
 } from '../lib/rsvp.js'
+import { celebrate } from '../lib/burst.js'
 
 const NAMES = `${COUPLE.groom.name} & ${COUPLE.bride.name}`
 
@@ -104,7 +105,7 @@ function Countdown({ ev }) {
         </div>
       ) : (
         <p className="script" style={{ fontSize: 22 }}>
-          Hôm nay là ngày ấy — hẹn gặp bạn!
+          Hẹn tương phùng!
         </p>
       )}
 
@@ -121,7 +122,7 @@ export function SaveTheDate() {
   return (
     <Panel id="save">
       <h2 className="display reveal" style={{ fontSize: 'clamp(28px,5.5vw,52px)' }}>
-        Đếm ngược
+        Hồi đầu
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
@@ -205,7 +206,7 @@ export function Details() {
   return (
     <Panel id="details">
       <h2 className="display reveal" style={{ fontSize: 'clamp(28px,5.5vw,52px)' }}>
-        Vu Quy - Thành Hôn
+        Hồi sau
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
@@ -359,6 +360,10 @@ export function Rsvp() {
     // (node --test src/lib/rsvp.test.mjs), vì đây là phần dễ sai nhất của form.
     const payload = buildPayload(form, EVENTS, new Date().toISOString())
 
+    // Chỉ bắn pháo khi hồi âm THẬT SỰ đã vào sổ. Bắn ngay lúc bấm nút thì gặp
+    // lúc mạng hỏng sẽ thành ra pháo hoa tưng bừng ngay trên dòng báo lỗi.
+    let ok = false
+
     if (isFirebaseReady(RSVP.firebase)) {
       try {
         const res = await fetch(firestoreUrl(RSVP.firebase), {
@@ -369,6 +374,7 @@ export function Rsvp() {
         // Firestore có CORS nên đọc được kết quả thật — sai rules hay sai
         // projectId là biết ngay, không âm thầm mất phản hồi của khách.
         if (!res.ok) throw new Error(`Firestore ${res.status}`)
+        ok = true
 
         // Lời chúc ghi thêm sang collection `wishes` để hiện lên bảng công khai.
         // Cố ý KHÔNG để lỗi ở đây làm hỏng cả lượt gửi: hồi âm đã vào `rsvp`
@@ -400,6 +406,7 @@ export function Rsvp() {
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload),
         })
+        ok = true
       } catch (err) {
         console.error('[RSVP] gửi lên endpoint thất bại:', err)
         setFailed(true)
@@ -414,6 +421,7 @@ export function Rsvp() {
 
     setSent(true)
     setBusy(false)
+    if (ok) celebrate()
   }
 
   return (
@@ -575,7 +583,7 @@ export function Outro() {
       {/* chừa chỗ cho đôi nhẫn 3D ở nửa trên */}
       <div className="hero-space" aria-hidden="true" />
 
-      <h2 className="thanks reveal">Cảm Tạ</h2>
+      <h2 className="thanks reveal">Hồi kết</h2>
       <p className="lead reveal" style={{ margin: '14px auto 0' }}>
         Cảm ơn mấy bạn, bớt thời gian,<br />
         Đọc hết trăm ngàn, ý chứa chan.<br />
@@ -586,7 +594,7 @@ export function Outro() {
       <div className="ornament">✦</div>
 
       <h3 className="display gold-text reveal" style={{ fontSize: 'clamp(26px,6vw,58px)' }}>
-        {COUPLE.groom.name.toUpperCase()} ♥ <br />{COUPLE.bride.name.toUpperCase()}
+        {COUPLE.groom.name.toUpperCase()} & <br />{COUPLE.bride.name.toUpperCase()}
       </h3>
     </Panel>
   )

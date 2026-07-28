@@ -16,10 +16,13 @@ function detect() {
   return cores >= 8 ? 'high' : 'mid'
 }
 
+// `sparks` = số tia trong MỘT quả pháo. Nhân với FIREWORK_SHELLS (10) ra tổng số
+// điểm — cỡ vài nghìn, không đáng gì so với 70k hạt của cụm morph, mà lại chỉ vẽ
+// trong đúng mấy giây sau khi khách gửi hồi âm.
 export const TIERS = {
-  low: { particles: 14000, petals: 220, fireflies: 60, dpr: 1, bloom: true, dof: false, transmission: false },
-  mid: { particles: 34000, petals: 400, fireflies: 100, dpr: 1.4, bloom: true, dof: false, transmission: false },
-  high: { particles: 70000, petals: 600, fireflies: 140, dpr: 1.75, bloom: true, dof: true, transmission: true },
+  low: { particles: 14000, petals: 220, fireflies: 60, sparks: 110, dpr: 1, bloom: true, dof: false, transmission: false },
+  mid: { particles: 34000, petals: 400, fireflies: 100, sparks: 200, dpr: 1.4, bloom: true, dof: false, transmission: false },
+  high: { particles: 70000, petals: 600, fireflies: 140, sparks: 300, dpr: 1.75, bloom: true, dof: true, transmission: true },
 }
 
 let tier = detect()

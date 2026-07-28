@@ -46,6 +46,11 @@ export const PARTICLE = {
     { type: 'text', text: '20 · 09 · 2026', font: 'script', width: 0.75 },
     { type: 'text', text: '04 · 10 · 2026', font: 'script', width: 0.75 },
 
+    { type: 'text', text: '囍', width: 0.45 },     // song hỷ
+    { type: 'text', text: '❀', width: 0.4 },
+    { type: 'text', text: '∞', width: 0.5 },
+    { type: 'text', text: '🕊', width: 0.45 },     // bồ câu
+    { type: 'text', text: 'H ♥ T', width: 0.6 },
     // { type: 'sphere' },
 
     // Thêm chữ của bạn ở đây, ví dụ:
@@ -65,9 +70,8 @@ export const EVENTS = [
     date: new Date(2026, 8, 20, 11, 0, 0),
     dateLabel: 'Chủ nhật · 20 tháng 09 năm 2026',
     lunar: 'Nhằm ngày 10 tháng 08 năm Bính Ngọ',
-    timeLabel: '09:00 — Đón khách từ 10:30',
-    venue: 'Tư gia nhà gái',
-    address: 'Mỹ Thủy, Quảng Trị',
+    timeLabel: '10:30',
+    venue: 'Thôn Mỹ Thủy, xã Mỹ Thủy, tỉnh Quảng Trị',
     coords: '16.774916,107.335467',
     mapQuery: 'Quảng Trị', // chỉ dùng khi KHÔNG có coords
   },
@@ -79,9 +83,8 @@ export const EVENTS = [
     date: new Date(2026, 9, 4, 11, 0, 0),
     dateLabel: 'Chủ nhật · 04 tháng 10 năm 2026',
     lunar: 'Nhằm ngày 24 tháng 08 năm Bính Ngọ',
-    timeLabel: '07:00 — Đón khách từ 11:00',
+    timeLabel: '11:00',
     venue: 'Nhà Hàng Tiệc Cưới - Trung Tâm Hội Nghị Hương Phố',
-    address: 'A12 Phan Văn Trị - Phường Hạnh Thông - Tp. Hồ Chí Minh',
     coords: '10.828742101212985,106.68334925775166',
     mapQuery: 'Tp. Hồ Chí Minh', // chỉ dùng khi KHÔNG có coords
   },

@@ -16,6 +16,7 @@ import Fireflies from './Fireflies.jsx'
 import ParticleMorph from './ParticleMorph.jsx'
 import CurvedGallery from './CurvedGallery.jsx'
 import Rings from './Rings.jsx'
+import Fireworks from './Fireworks.jsx'
 import GoldEnvironment from './GoldEnvironment.jsx'
 
 import { scrollState } from '../lib/scroll.js'
@@ -117,6 +118,12 @@ export default function Stage() {
             <Fireflies />
           </>
         )}
+
+        {/* Luôn gắn, kể cả khi khách bật "giảm chuyển động": nó chỉ nằm im chờ
+            (visible=false, không có lệnh vẽ nào) và giữ cho hàng đợi được rút.
+            Chỗ chặn giảm-chuyển-động nằm trong celebrate() ở lib/burst.js. */}
+        <Fireworks />
+
 
         <CameraRig />
         <Effects />
