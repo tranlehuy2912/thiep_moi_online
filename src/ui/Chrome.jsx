@@ -48,10 +48,31 @@ export function Music() {
     const a = new Audio(MUSIC.src)
     a.loop = true
     a.volume = 0
-    a.preload = 'auto'
+    // 'metadata' chứ không phải 'auto': file nhạc 3.3MB, tải ngay từ đầu là nó
+    // giành băng thông với ảnh và khung hình đầu — đúng thứ khách nhìn thấy
+    // trước. Vẫn đủ để biết file có tồn tại hay không (404 thì nút tự ẩn).
+    a.preload = 'metadata'
     a.addEventListener('error', () => setAvailable(false))
     audio.current = a
+
+    // Trang tải xong rồi thì mới nạp sẵn cả bài, để lúc khách bấm là chạy liền
+    // chứ không phải chờ buffer. Bỏ qua nếu nhạc đã kịp chạy trước đó —
+    // load() giữa lúc đang phát là cắt ngang bài.
+    let t = 0
+    const warm = () => {
+      t = setTimeout(() => {
+        const el = audio.current
+        if (!el || !el.paused || el.currentTime > 0) return
+        el.preload = 'auto'
+        el.load()
+      }, 1500)
+    }
+    if (document.readyState === 'complete') warm()
+    else window.addEventListener('load', warm, { once: true })
+
     return () => {
+      clearTimeout(t)
+      window.removeEventListener('load', warm)
       a.pause()
       audio.current = null
     }

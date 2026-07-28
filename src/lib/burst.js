@@ -33,7 +33,9 @@ export function celebrate(count = 9) {
     const side = i % 2 ? 1 : -1
     fireBurst({
       nx: side * (0.3 + Math.random() * 0.55),
-      ny: 0.18 + Math.random() * 0.62,
+      // Sàn 0.3 chứ không phải 0.18: thấp hơn nữa là quả pháo nổ ngay sau tấm
+      // thiệp "Đa tạ thân hữu" — tấm đó đục, che mất sạch.
+      ny: 0.3 + Math.random() * 0.5,
       delay: i * 0.34 + Math.random() * 0.22,
       tone: Math.random() * 0.6,
     })
