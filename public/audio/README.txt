@@ -1,11 +1,12 @@
 Nhạc nền của thiệp: nhac.mp3 — "Vá Lỗi Chương Trình".
 
 Đang có gì
-  - nhac.mp3 — 197kbps, 48kHz stereo, 3:29, 5.1MB.
+  - nhac.mp3 — 194kbps, 48kHz stereo, 3:37, 5.0MB.
+    (Nguồn: "Vá Lỗi Chương Trình (3).mp3" — bản dựng ngày 29/07/2026)
   - Audio Y HỆT BẢN GỐC từng bit (remux -c:a copy, không encode lại).
     Kiểm chứng: lấy hiệu hai tín hiệu ra -91 dB, tức sàn nhiễu số học.
-  - Chỉ bỏ ảnh bìa mjpeg nhúng trong ID3 (-vn), đỡ 20KB mà trang không dùng tới.
-  - Không chỉnh loudness: bản gốc đã ở -13.5 LUFS (chuẩn nhạc thương mại),
+  - Chỉ bỏ ảnh bìa mjpeg nhúng trong ID3 (-vn), đỡ 17KB mà trang không dùng tới.
+  - Không chỉnh loudness: bản gốc đã ở -13.6 LUFS (chuẩn nhạc thương mại),
     hạ âm lượng là việc của MUSIC.volume.
 
 ⚠️ ĐỪNG nén lại cho "nhẹ"
