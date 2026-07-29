@@ -71,13 +71,8 @@ export function getTexture(url, { label = '', seed = 0 } = {}) {
   return cache.get(url)
 }
 
-// Gọi khi ảnh sắp lọt vào tầm nhìn: lúc này mới thật sự tải file về.
-// Gọi bao nhiêu lần cũng được, chỉ tải một lần.
-export function ensureLoaded(url, onLoad) {
-  const tex = cache.get(url)
-  if (!url || !tex || tex.userData.requested) return tex
+function startLoad(url, tex, onLoad, onDone) {
   tex.userData.requested = true
-
   loader.load(
     url,
     (loaded) => {
@@ -87,13 +82,64 @@ export function ensureLoaded(url, onLoad) {
       tex.needsUpdate = true
       tex.userData.real = true
       onLoad?.(tex)
+      onDone?.()
     },
     undefined,
     () => {
-      /* không có ảnh → giữ ảnh giữ chỗ, im lặng */
+      // PHẢI mở lại cờ. Để `requested` vẫn true thì một lần mạng hỏng là ảnh đó
+      // VĨNH VIỄN không bao giờ tải lại, khách chỉ còn thấy ảnh giữ chỗ.
+      tex.userData.requested = false
+      onDone?.()
     },
   )
+}
+
+// Gọi khi ảnh sắp lọt vào tầm nhìn: lúc này mới thật sự tải file về.
+// Gọi bao nhiêu lần cũng được, chỉ tải một lần.
+export function ensureLoaded(url, onLoad) {
+  const tex = cache.get(url)
+  if (!url || !tex || tex.userData.requested) return tex
+  startLoad(url, tex, onLoad)
   return tex
+}
+
+// ---------------------------------------------------------------------------
+//  Tải nốt CẢ album ở chế độ nền.
+//
+//  Vì sao bắt buộc phải có: bản trước chỉ tải ảnh khi nó lọt vào ±4 ô quanh
+//  tâm album. Nhưng lúc kéo nhanh, một frame gom hết các event pointermove nên
+//  offset nhảy vọt qua cả vùng đó — ảnh bị nhảy qua thì KHÔNG BAO GIỜ được gọi
+//  tải nữa. Đo trên nhutrang.site: chỉ 8 trong 40 ảnh từng được request, đúng 8
+//  ảnh nằm trong vùng ban đầu.
+//
+//  Cả album chỉ ~1.7MB nên tải hết chẳng đáng gì. Thứ đáng tiết kiệm là ĐỪNG
+//  tải cùng lúc với khung hình đầu — nên xếp hàng, mỗi lúc chỉ vài ảnh, và
+//  nhường đường cho `ensureLoaded` (ảnh khách đang xem) chen lên trước.
+// ---------------------------------------------------------------------------
+let queue = []
+let inflight = 0
+const MAX_SONG_SONG = 3
+
+function pump() {
+  while (inflight < MAX_SONG_SONG && queue.length) {
+    const url = queue.shift()
+    const tex = cache.get(url)
+    if (!tex || tex.userData.requested) continue // đã tải hoặc đang tải
+    inflight++
+    startLoad(url, tex, undefined, () => {
+      inflight--
+      pump()
+    })
+  }
+}
+
+export function prefetchAll(urls) {
+  for (const u of urls) {
+    if (!cache.has(u)) continue // chưa có texture giữ chỗ thì chưa tới lượt
+    if (cache.get(u).userData.requested) continue
+    if (!queue.includes(u)) queue.push(u)
+  }
+  pump()
 }
 
 // Tải ngay (dùng cho ảnh đơn lẻ, không phải album)

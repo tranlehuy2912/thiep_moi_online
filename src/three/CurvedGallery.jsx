@@ -8,7 +8,7 @@ import { useMemo, useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GALLERY, PALETTE } from '../config.js'
-import { getTexture, ensureLoaded } from '../lib/textures.js'
+import { getTexture, ensureLoaded, prefetchAll } from '../lib/textures.js'
 import { scrollState } from '../lib/scroll.js'
 
 export const galleryState = {
@@ -121,8 +121,10 @@ function Slide({ item, index, total, shared }) {
     mesh.current.rotation.y = -xc * 0.13
     mesh.current.position.y = Math.sin(xc * 0.4) * 0.04
 
-    // Chỉ tải ảnh khi nó sắp vào tầm nhìn (kèm vài ô đệm hai bên để kéo không bị hụt)
-    if (Math.abs(x) < GAP * 4) ensureLoaded(item.src)
+    // Ảnh sắp vào tầm nhìn thì tải NGAY, chen trước hàng đợi nền.
+    // Nới từ GAP*4 lên GAP*6: vùng hiện hình tắt hẳn ở GAP*3.4, chừa rộng hơn
+    // để lúc kéo nhanh ảnh kịp về trước khi tới giữa khung.
+    if (Math.abs(x) < GAP * 6) ensureLoaded(item.src)
 
     const focus = Math.max(0, 1 - Math.abs(x) / (GAP * 1.15))
     const zoom = 0.88 + focus * 0.2
@@ -171,6 +173,24 @@ export default function CurvedGallery({ active = true }) {
   const { viewport } = useThree()
   const shared = useRef({ speed: 0, opacity: 0 })
   const group = useRef()
+
+  // Tải nốt cả album ở chế độ nền.
+  //
+  // KHÔNG dựa vào vùng ±N ô quanh tâm để tải: kéo nhanh là offset nhảy qua cả
+  // vùng đó trong một frame, ảnh không bao giờ được yêu cầu và khách chỉ thấy
+  // ảnh giữ chỗ (đã đo trên bản chạy thật: 8/40 ảnh được request).
+  //
+  // Hoãn 2.5 giây để không giành băng thông với khung hình đầu và với font.
+  useEffect(() => {
+    const urls = GALLERY.map((g) => g.src)
+    const t = setTimeout(() => prefetchAll(urls), 2500)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Khách đã tới màn album thì kéo hàng đợi lên ngay, khỏi chờ nốt 2.5 giây.
+  useEffect(() => {
+    if (active) prefetchAll(GALLERY.map((g) => g.src))
+  }, [active])
 
   // Kéo bằng chuột / ngón tay.
   // Nghe ở window vì lớp HTML nằm đè lên canvas; chỉ nhận nếu bắt đầu trong vùng album.

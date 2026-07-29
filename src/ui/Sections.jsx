@@ -128,7 +128,7 @@ export function SaveTheDate() {
   return (
     <Panel id="save">
       <h2 className="display reveal" style={{ fontSize: 'clamp(28px,5.5vw,52px)' }}>
-        Hồi đầu
+        Hồi Đầu
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
@@ -212,7 +212,7 @@ export function Details() {
   return (
     <Panel id="details">
       <h2 className="display reveal" style={{ fontSize: 'clamp(28px,5.5vw,52px)' }}>
-        Hồi sau
+        Hồi Sau
       </h2>
       <hr className="rule" />
       <p className="lead reveal">
@@ -589,7 +589,7 @@ export function Outro() {
       {/* chừa chỗ cho đôi nhẫn 3D ở nửa trên */}
       <div className="hero-space" aria-hidden="true" />
 
-      <h2 className="thanks reveal">Hồi kết</h2>
+      <h2 className="thanks reveal">Hồi Kết</h2>
       <p className="lead reveal" style={{ margin: '14px auto 0' }}>
         Cảm ơn mấy bạn, bớt thời gian<br />
         Đọc hết trăm ngàn, ý chứa chan<br />
