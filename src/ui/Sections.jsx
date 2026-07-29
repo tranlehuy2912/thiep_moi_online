@@ -61,6 +61,12 @@ export function Hero() {
               {String(e.date.getDate()).padStart(2, '0')} · {String(e.date.getMonth() + 1).padStart(2, '0')} ·{' '}
               {e.date.getFullYear()}
             </div>
+            {/* Giờ để riêng một dòng, KHÔNG ghép vào dòng ngày: dòng ngày đang
+                nowrap và cỡ chữ lớn, thêm giờ vào là tràn mép trên điện thoại. */}
+            {e.timeLabel && <div className="t">{e.timeLabel}</div>}
+            {/* Địa điểm ngắn. Địa chỉ đầy đủ nằm ở màn "Hồi sau" — ở đây mà để
+                cả địa chỉ thì màn mở đầu rối và tràn trên điện thoại. */}
+            {(e.place || e.mapQuery) && <div className="p">{e.place || e.mapQuery}</div>}
           </div>
         ))}
       </div>

@@ -21,6 +21,18 @@ import { PALETTE, PARTICLE } from '../config.js'
 import { q } from '../lib/quality.js'
 import { scrollState } from '../lib/scroll.js'
 
+// Mặc định cho gợn sóng, dùng khi config.js thiếu ô nào. Đúng bằng các con số
+// từng hardcode trong shader, nên xoá hẳn PARTICLE.drift thì hình vẫn chạy như cũ.
+const DRIFT_DEFAULT = {
+  depth: 0.05,
+  flat: 0.008,
+  scale: 0.7,
+  speed: 0.08,
+  sway: 0.22,
+  swaySpeed: 0.12,
+}
+const DRIFT = { ...DRIFT_DEFAULT, ...(PARTICLE.drift || {}) }
+
 const vertex = /* glsl */ `
   ${NOISE}
 
@@ -30,6 +42,12 @@ const vertex = /* glsl */ `
   uniform float uScatter;    // 0..1 — thổi tung hạt (lúc mở thiệp / lúc cuộn nhanh)
   uniform vec2  uPointer;
   uniform float uPixelRatio;
+
+  // gợn sóng — điều khiển từ PARTICLE.drift trong config.js
+  uniform float uDriftDepth;
+  uniform float uDriftFlat;
+  uniform float uDriftScale;
+  uniform float uDriftSpeed;
 
   attribute vec3  aPosA;
   attribute vec3  aPosB;
@@ -54,15 +72,19 @@ const vertex = /* glsl */ `
     vec3 curl = curlNoise(pos * 0.7 + vec3(0.0, 0.0, uTime * 0.06));
     pos += curl * bulge * (0.5 + aRnd * 0.55);
 
-    // Trôi lững lờ khi đứng yên, để hình không bao giờ "chết cứng".
+    // Gợn sóng: trôi lững lờ khi đứng yên, để hình không bao giờ "chết cứng".
+    // Vặn ở PARTICLE.drift trong config.js — ở đó có ghi rõ từng số.
     //
-    // ⚠️ Nét chữ ở đây chỉ dày ~0.04 đơn vị. Đẩy hạt trong mặt phẳng XY quá
-    // 0.02 là nét chữ nhoè vào nhau và các góc trông méo mó ngay. Nên gần như
-    // toàn bộ chuyển động "thở" dồn vào TRỤC Z — mắt vẫn thấy hạt sống, mà
-    // đường viền hình thì giữ nguyên sắc nét.
-    vec3 drift = curlNoise(pos * 0.7 + uTime * 0.08);
-    pos.xy += drift.xy * (0.008 + 0.006 * aRnd);
-    pos.z += drift.z * (0.05 + 0.05 * aRnd);
+    // ⚠️ Nét chữ ở đây chỉ dày ~0.04 đơn vị, nên biên độ XY (uDriftFlat) phải
+    // giữ nhỏ, còn phần "thở" thì dồn vào TRỤC Z (uDriftDepth) — mắt vẫn thấy
+    // hạt sống mà đường viền hình giữ nguyên sắc nét.
+    //
+    // Hệ số nhân theo aRnd giữ đúng khoảng như bản hardcode trước đây:
+    //   XY: flat … flat*1.75      (mặc định 0.008 … 0.014)
+    //   Z:  depth … depth*2       (mặc định 0.05  … 0.10)
+    vec3 drift = curlNoise(pos * uDriftScale + uTime * uDriftSpeed);
+    pos.xy += drift.xy * uDriftFlat * (1.0 + 0.75 * aRnd);
+    pos.z += drift.z * uDriftDepth * (1.0 + aRnd);
 
     // thổi tung
     pos += normalize(pos + 0.001) * uScatter * (2.0 + aRnd * 6.0);
@@ -150,6 +172,11 @@ export default function ParticleMorph({ active = true }) {
       uOpacity: { value: 0.72 },
       uPointer: { value: new THREE.Vector2() },
       uPixelRatio: { value: Math.min(2, window.devicePixelRatio || 1) },
+      // giá trị thật được nạp lại mỗi frame trong useFrame, xem DRIFT bên dưới
+      uDriftDepth: { value: DRIFT.depth },
+      uDriftFlat: { value: DRIFT.flat },
+      uDriftScale: { value: DRIFT.scale },
+      uDriftSpeed: { value: DRIFT.speed },
       uColorA: { value: new THREE.Color(PALETTE.goldLight) },
       uColorB: { value: new THREE.Color(PALETTE.goldDeep) },
       uColorHot: { value: new THREE.Color(PALETTE.cream) },
@@ -180,6 +207,11 @@ export default function ParticleMorph({ active = true }) {
         const FONTS = {
           serif: { fontFamily: '"Playfair Display", Georgia, serif', weight: 700 },
           script: { fontFamily: '"Cormorant Garamond", Georgia, serif', weight: 600 },
+          // Thư pháp thật. Dùng cho monogram khi muốn CẢ HAI chữ đều thư pháp.
+          // ⚠️ Nét mảnh hơn serif khoảng 3 lần (đo được: p10 5px so với 16px),
+          // nên chữ sẽ nhạt hơn rõ trên điện thoại (14k hạt). Vẫn liền nét,
+          // không đứt thành đốm — chỉ mảnh và mờ hơn.
+          calligraphy: { fontFamily: '"Italianno", "Pinyon Script", cursive', weight: 400 },
         }
 
         // Dịch mỗi mục trong PARTICLE.sequence thành một hàm dựng đám mây điểm
@@ -202,14 +234,18 @@ export default function ParticleMorph({ active = true }) {
                     targetWidth: wide * (item.width ?? 1),
                   })
               case 'monogram':
-                // Bỏ trống overlap/heart thì destructuring bên shapes.js tự lấy
-                // giá trị mặc định trong MONOGRAM — không cần lặp lại ở đây.
+                // Bỏ trống overlap/heart/style thì destructuring bên shapes.js
+                // tự lấy mặc định — không cần lặp lại ở đây.
                 return () =>
                   monogramPoints(COUNT, {
                     left: item.left,
                     right: item.right,
+                    style: item.style,
                     overlap: item.overlap,
                     heart: item.heart,
+                    scriptSize: item.scriptSize,
+                    scriptDx: item.scriptDx,
+                    scriptDy: item.scriptDy,
                     ...(FONTS[item.font] || FONTS.serif),
                     targetWidth: wideShape * (item.width ?? 1),
                   })
@@ -272,6 +308,15 @@ export default function ParticleMorph({ active = true }) {
 
     u.uPointer.value.set(scrollState.pointerSmooth.x, scrollState.pointerSmooth.y)
 
+    // Đọc lại gợn sóng MỖI FRAME, không nhét vào useMemo: nhờ vậy sửa
+    // PARTICLE.drift trong config.js là thấy đổi ngay, khỏi reload. Chỉ là gán
+    // vài số float nên không tốn gì.
+    const w = PARTICLE.drift || DRIFT
+    u.uDriftDepth.value = w.depth ?? DRIFT.depth
+    u.uDriftFlat.value = w.flat ?? DRIFT.flat
+    u.uDriftScale.value = w.scale ?? DRIFT.scale
+    u.uDriftSpeed.value = w.speed ?? DRIFT.speed
+
     if (!ready || !active) return
 
     // Vòng lặp: giữ hình → morph → sang hình kế (nhịp đặt trong config)
@@ -295,7 +340,11 @@ export default function ParticleMorph({ active = true }) {
 
     // xoay chậm, và né theo con trỏ một chút
     const p = points.current
-    p.rotation.y = Math.sin(u.uTime.value * 0.12) * 0.22 + scrollState.pointerSmooth.x * 0.12
+    // Lắc cả cụm — chuyển động RIÊNG, không phải gợn sóng (PARTICLE.drift.sway)
+    const sway = w.sway ?? DRIFT.sway
+    p.rotation.y =
+      Math.sin(u.uTime.value * (w.swaySpeed ?? DRIFT.swaySpeed)) * sway +
+      scrollState.pointerSmooth.x * 0.12
     p.rotation.x = scrollState.pointerSmooth.y * -0.08
 
     // Nâng cụm hạt lên nửa trên khung hình — nửa dưới dành cho tên cô dâu chú rể,

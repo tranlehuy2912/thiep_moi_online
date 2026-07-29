@@ -388,6 +388,73 @@ export const MONOGRAM = {
   heartDrop: 0.34,
 }
 
+// ---------------------------------------------------------------------------
+//  Kiểu 'script' — monogram cưới cổ điển: một chữ SERIF ĐỨNG làm nền, một chữ
+//  THƯ PHÁP nét mảnh có đuôi vắt đè chéo lên.
+//
+//  Đây là chỗ bắt buộc phải có font riêng: chồng hai chữ serif lên nhau thì mãi
+//  vẫn chỉ ra "HT" ghép sát, không bao giờ ra được dáng thư pháp vắt qua.
+//
+//  Chọn Italianno sau khi dựng thử 4 font thư pháp Google và ĐO ĐỘ DÀY NÉT:
+//    Italianno    nét mảnh nhất, đuôi vắt dài, thanh nhất — sát ảnh mẫu nhất
+//    Pinyon Script  cũng đẹp, nhiều vòng xoắn hơn (để làm dự phòng)
+//    Great Vibes    quá to và nặng, cuộn quanh chữ nền thành vòng tròn
+//    Tangerine      giống Italianno nhưng đuôi vắt tràn ra ngoài khung
+//
+//  Vì sao chữ thư pháp phải vẽ TO hơn (size 1.7): nét nó mảnh, ở cỡ chữ nền
+//  (300px) nét mảnh nhất chỉ ~5px, mà sampleMask quét step 2 nên chỉ được 2 cột
+//  hạt → nét đứt đoạn. Vẽ ở 300×1.7 ≈ 510px thì nét mảnh lên ~8px = 4 cột, đủ.
+// ---------------------------------------------------------------------------
+export const MONOGRAM_SCRIPT = {
+  size: 1.7, // chữ thư pháp to hơn chữ nền bao nhiêu lần
+  dx: 0.26, // lệch ngang so với chữ nền, tính theo cỡ chữ nền
+
+  // Lệch dọc (dương = xuống). Đã dựng thử 0.05 / 0.12 / 0.14 / 0.20 / 0.22 /
+  // 0.28 rồi nhìn tận mắt: ở 0.05 thanh ngang chữ T nhổng lên cao hơn chữ H,
+  // trông như hai chữ rời tầng. 0.14 là chỗ chữ T hạ xuống ngang tầm chữ H mà
+  // đuôi vẫn chưa chọc xuống dưới chân chữ — từ ~0.22 trở đi thì bắt đầu lún.
+  // (Cả khoảng 0.05–0.28 đều liền một khối, đã đếm thành phần liên thông.)
+  dy: 0.14,
+}
+
+function scriptMonogram(count, o) {
+  const c = document.createElement('canvas')
+  const ctx = c.getContext('2d', { willReadFrequently: true })
+
+  const baseFont = `${o.weight} ${o.fontSize}px ${o.fontFamily}`
+  const scSize = Math.round(o.fontSize * o.scriptSize)
+  const scFont = `400 ${scSize}px ${o.scriptFamily}`
+
+  ctx.font = baseFont
+  const wBase = ctx.measureText(o.left).width
+  ctx.font = scFont
+  const wSc = ctx.measureText(o.right).width
+
+  // Chữ thư pháp có đuôi vắt THÒ RA NGOÀI bề rộng advance, nên chừa lề rất
+  // rộng. Cắt thừa không sao: sampleMask tự bo về đúng khung mực.
+  const pad = o.fontSize * 1.1
+  c.width = Math.ceil(wBase + wSc + pad * 2)
+  c.height = Math.ceil(scSize * 1.9 + pad)
+
+  ctx.fillStyle = '#fff'
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'center'
+  const cx = c.width / 2
+  const cy = c.height / 2
+
+  ctx.font = baseFont
+  ctx.fillText(o.left, cx - o.fontSize * o.scriptDx * 0.45, cy)
+
+  ctx.font = scFont
+  ctx.fillText(o.right, cx + o.fontSize * o.scriptDx, cy + o.fontSize * o.scriptDy)
+
+  return sampleMask(ctx, c.width, c.height, count, {
+    step: 2,
+    depth: 0.14,
+    targetWidth: o.targetWidth,
+  })
+}
+
 export function monogramPoints(count, opts = {}) {
   const {
     left = 'H',
@@ -395,11 +462,35 @@ export function monogramPoints(count, opts = {}) {
     fontFamily = '"Playfair Display", Georgia, serif',
     weight = 700,
     fontSize = 300,
+    // 'ligature' = hai chữ serif ghép sát (mặc định)
+    // 'script'   = chữ serif nền + chữ thư pháp vắt lên
+    style = 'ligature',
+    scriptFamily = '"Italianno", "Pinyon Script", cursive',
+    scriptSize = MONOGRAM_SCRIPT.size,
+    scriptDx = MONOGRAM_SCRIPT.dx,
+    scriptDy = MONOGRAM_SCRIPT.dy,
     overlap = MONOGRAM.overlap,
     heart = MONOGRAM.heart,
     heartDrop = MONOGRAM.heartDrop,
     targetWidth = 4,
   } = opts
+
+  if (style === 'script') {
+    return (
+      scriptMonogram(count, {
+        left,
+        right,
+        fontFamily,
+        weight,
+        fontSize,
+        scriptFamily,
+        scriptSize,
+        scriptDx,
+        scriptDy,
+        targetWidth,
+      }) || textPoints(`${left} ♥ ${right}`, count, { targetWidth })
+    )
+  }
 
   const c = document.createElement('canvas')
   const ctx = c.getContext('2d', { willReadFrequently: true })
@@ -510,6 +601,9 @@ export async function waitForFonts() {
       Promise.all([
         document.fonts.load('700 260px "Playfair Display"'),
         document.fonts.load('600 260px "Cormorant Garamond"'),
+        // Thiếu dòng này thì monogram kiểu 'script' quét mực lúc font chưa về
+        // → ra chữ serif dự phòng, mất hẳn dáng thư pháp.
+        document.fonts.load('400 510px "Italianno"'),
       ]).then(() => document.fonts.ready),
       new Promise((r) => setTimeout(r, 3000)),
     ])

@@ -24,12 +24,19 @@ export const COUPLE = {
 //
 // Tuỳ chọn cho mỗi mục:
 //   only:   'mobile' | 'desktop'   — chỉ hiện trên loại màn hình đó (bỏ trống = cả hai)
-//   font:   'serif' (mặc định) | 'script'  — script = kiểu nghiêng mềm, hợp với ngày tháng
+//   font:   'serif' (mặc định) | 'script' | 'calligraphy'
+//           script = serif nghiêng mềm, hợp với ngày tháng
+//           calligraphy = thư pháp thật (Italianno) — nét mảnh, dùng cho monogram
 //   width:  0.3 … 1.0   — bề ngang chữ so với chiều rộng khả dụng (mặc định 1.0)
 //   size:   0.5 … 1.5   — cỡ của heart / rings / sphere (mặc định 1.0)
 //
 // Riêng monogram:
 //   left / right → hai chữ cái (mặc định 'H' và 'T')
+//   style: 'script'   → chữ SERIF ĐỨNG làm nền + chữ THƯ PHÁP nét mảnh vắt lên
+//                       (kiểu monogram cưới cổ điển). Dùng font Italianno.
+//          'ligature' → hai chữ serif ghép sát nhau (mặc định)
+//
+//   ── các số dưới đây chỉ có tác dụng với style 'ligature' ──
 //   overlap: 0.10 … 0.18 — chồng lên nhau bao nhiêu (mặc định 0.10).
 //                          ĐỪNG hạ dưới 0.10: ở 0.06 nhìn thì tưởng dính nhưng
 //                          đo ra vẫn là HAI mảng rời. Từ 0.20 trở lên thì chữ
@@ -38,11 +45,61 @@ export const COUPLE = {
 //                          gần hết, chỉ còn mũi nhọn thò xuống nhìn như cái gai.
 //                          Muốn có tim thì để { type: 'heart' } riêng một nhịp.
 //
+//   ── các số dưới đây chỉ có tác dụng với style 'script' ──
+//   Muốn CẢ HAI chữ đều thư pháp thì thêm font: 'calligraphy' và đổi 3 số:
+//     { type: 'monogram', left: 'H', right: 'T', style: 'script',
+//       font: 'calligraphy', scriptSize: 1.0, scriptDx: 0.42, scriptDy: 0.02 }
+//   Đẹp và mềm như chữ ký, nhưng nét mảnh gấp ~3 lần nên nhạt hơn trên điện thoại.
+//   scriptSize: 1.7   — chữ thư pháp to hơn chữ nền bao nhiêu lần. Đừng hạ dưới
+//                       ~1.4: nét thư pháp mảnh, vẽ nhỏ là hạt rắc không đủ và
+//                       nét bị đứt đoạn.
+//   scriptDx:   0.26  — vắt lệch sang phải bao nhiêu (theo cỡ chữ nền)
+//   scriptDy:   0.14  — chữ thư pháp nằm thấp hơn chữ nền bao nhiêu.
+//                       Nhỏ hơn ~0.08 là nó nhổng lên trên chữ nền, trông rời
+//                       tầng; lớn hơn ~0.22 là đuôi chọc xuống dưới chân chữ.
+//
 // Chữ dài thì hạt bị dàn mỏng và khó đọc — nên giữ dưới ~20 ký tự mỗi dòng.
 // ---------------------------------------------------------------------------
 export const PARTICLE = {
   hold: 2.6, // giây giữ nguyên mỗi hình
   morph: 1.6, // giây để biến sang hình kế tiếp
+
+  // -------------------------------------------------------------------------
+  // ⭐ GỢN SÓNG — cụm hạt "thở" khi đang đứng yên giữa hai lần biến hình.
+  //
+  // Sóng đến từ một trường curl-noise LIỀN MẠCH, không phải rung ngẫu nhiên
+  // từng hạt: các hạt cạnh nhau nhận gần đúng một hướng đẩy nên nhấp nhô THÀNH
+  // CỤM, và cả trường thì trôi ngang — đó là lý do nhìn ra sóng lăn qua hình.
+  //
+  // Sửa mấy số này là thấy đổi ngay, không cần khởi động lại (đọc mỗi frame).
+  // Đặt depth = flat = 0 là hình đứng im hoàn toàn — nhưng lúc đó nó trông
+  // như ảnh PNG dán lên, mất sạch cảm giác đây là hạt thật.
+  // -------------------------------------------------------------------------
+  // drift: {
+  //   // Biên độ theo trục Z (chiều sâu). ĐÂY là thứ tạo ra cảm giác sóng.
+  //   // Z không hề vô hình: hạt xa gần thì to nhỏ khác nhau, nên sóng hiện ra ở
+  //   // độ SÁNG và cỡ hạt, còn đường viền hình thì vẫn sắc. 0.03 = dịu, 0.10 = rõ.
+  //   depth: 0.05,
+
+  //   // Biên độ trong mặt phẳng XY (ngang–dọc).
+  //   // ⚠️ Nét chữ chỉ dày ~0.04 đơn vị. Quá 0.02 là nét nhoè vào nhau và các góc
+  //   // chữ trông méo mó ngay — đúng lỗi "nhìn cứ méo méo" đã sửa trước đây.
+  //   // Muốn sóng mạnh hơn thì tăng `depth`, đừng tăng số này.
+  //   flat: 0.008,
+
+  //   // Bước sóng. Số NHỎ = sóng dài, thoải; số LỚN = lăn tăn, vụn.
+  //   // 0.7 cho khoảng 4–5 nhịp trải hết một dòng chữ.
+  //   scale: 0.7,
+
+  //   // Sóng bò nhanh chậm. 0.08 ≈ một nhịp đi hết dòng chữ trong ~17 giây.
+  //   speed: 0.08,
+
+  //   // Cả cụm lắc qua lại quanh trục dọc (radian). Đây là chuyển động RIÊNG,
+  //   // không phải gợn sóng — 0.22 rad ≈ 12.6°, một vòng ~52 giây. Đặt 0 để tắt.
+  //   sway: 0.22,
+  //   swaySpeed: 0.12,
+  // },
+  drift: { depth: 0, flat: 0, sway: 0 },
 
   sequence: [
     { type: 'heart' },
@@ -62,7 +119,8 @@ export const PARTICLE = {
     { type: 'text', text: '❀', width: 0.4 },
     { type: 'text', text: '∞', width: 0.5 },
     { type: 'text', text: '🕊', width: 0.45 },     // bồ câu
-    { type: 'monogram', left: 'H', right: 'T', width: 0.4 },
+    // { type: 'monogram', left: 'H', right: 'T', style: 'script', width: 0.45 },
+    { type: 'monogram', left: 'H', right: 'T', style: 'script', font: 'calligraphy', scriptSize: 1.7, scriptDx: 0.25, scriptDy: 0.02, width: 0.45 },
     // { type: 'sphere' },
 
     // Thêm chữ của bạn ở đây, ví dụ:
@@ -72,6 +130,11 @@ export const PARTICLE = {
 }
 
 // Hai tiệc — nhà gái và nhà trai
+//
+// `place` là tên địa điểm NGẮN, chỉ dùng ở màn mở đầu (hero) dưới mỗi ngày.
+// Tách riêng khỏi `venue` vì hero cần gọn: nhồi cả địa chỉ đầy đủ vào đó là
+// nặng màn mở đầu, mà địa chỉ đầy đủ thì đã có ở màn "Hồi sau" rồi.
+// Bỏ trống `place` thì hero tự lấy `mapQuery`; bỏ cả hai thì hero không hiện dòng đó.
 export const EVENTS = [
   {
     id: 'nha-gai',
@@ -84,6 +147,7 @@ export const EVENTS = [
     lunar: 'Nhằm ngày 10 tháng 08 năm Bính Ngọ',
     timeLabel: '10:30',
     venue: 'Thôn Mỹ Thủy, xã Mỹ Thủy, tỉnh Quảng Trị',
+    place: 'Mỹ Thủy · Quảng Trị', // tên ngắn cho màn mở đầu
     coords: '16.774916,107.335467',
     mapQuery: 'Quảng Trị', // chỉ dùng khi KHÔNG có coords
   },
@@ -97,6 +161,7 @@ export const EVENTS = [
     lunar: 'Nhằm ngày 24 tháng 08 năm Bính Ngọ',
     timeLabel: '11:00',
     venue: 'Nhà Hàng Tiệc Cưới - Trung Tâm Hội Nghị Hương Phố',
+    place: 'Hương Phố · TP. Hồ Chí Minh', // tên ngắn cho màn mở đầu
     coords: '10.828742101212985,106.68334925775166',
     mapQuery: 'Tp. Hồ Chí Minh', // chỉ dùng khi KHÔNG có coords
   },
