@@ -9,7 +9,14 @@ import { useMemo, useRef, useEffect, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { NOISE } from './shaders/noise.glsl.js'
-import { heartPoints, ringsPoints, textPoints, spherePoints, waitForFonts } from '../lib/shapes.js'
+import {
+  heartPoints,
+  ringsPoints,
+  textPoints,
+  monogramPoints,
+  spherePoints,
+  waitForFonts,
+} from '../lib/shapes.js'
 import { PALETTE, PARTICLE } from '../config.js'
 import { q } from '../lib/quality.js'
 import { scrollState } from '../lib/scroll.js'
@@ -193,6 +200,18 @@ export default function ParticleMorph({ active = true }) {
                   textPoints(item.text, COUNT, {
                     ...(FONTS[item.font] || FONTS.serif),
                     targetWidth: wide * (item.width ?? 1),
+                  })
+              case 'monogram':
+                // Bỏ trống overlap/heart thì destructuring bên shapes.js tự lấy
+                // giá trị mặc định trong MONOGRAM — không cần lặp lại ở đây.
+                return () =>
+                  monogramPoints(COUNT, {
+                    left: item.left,
+                    right: item.right,
+                    overlap: item.overlap,
+                    heart: item.heart,
+                    ...(FONTS[item.font] || FONTS.serif),
+                    targetWidth: wideShape * (item.width ?? 1),
                   })
               case 'heart':
               default:

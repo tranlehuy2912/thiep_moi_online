@@ -42,7 +42,7 @@ export function Hero() {
         <span className="gold-text">{COUPLE.bride.name.toUpperCase()}</span>
       </h1>
 
-      <p className="tagline reveal" style={{ '--d': '.25s' }}>
+      {/* <p className="tagline reveal" style={{ '--d': '.25s' }}>
         Cùng một nghề chung, gõ chữ lâu<br />
         Quen nhau từ những buổi canh thâu<br />
         Mùng bốn tháng chín, duyên mình khởi<br />
@@ -51,9 +51,9 @@ export function Hero() {
         Giữ tình hai đứa có dễ đâu<br />
         Vẫn trong tháng chín, thêm lần nữa<br />
         Đến buổi hai mươi, xin rước dâu
-      </p>
+      </p> */}
 
-      {/* <div className="dates reveal" style={{ '--d': '.4s' }}>
+      <div className="dates reveal" style={{ '--d': '.4s' }}>
         {EVENTS.map((e) => (
           <div key={e.id}>
             <div className="k">{e.side}</div>
@@ -63,7 +63,7 @@ export function Hero() {
             </div>
           </div>
         ))}
-      </div> */}
+      </div>
     </Panel>
   )
 }

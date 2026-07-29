@@ -15,16 +15,28 @@ export const COUPLE = {
 // Cụm hạt sẽ lần lượt biến thành từng mục dưới đây rồi quay lại từ đầu.
 // Muốn thêm chữ: chỉ cần chèn một dòng { type: 'text', text: '...' } vào danh sách.
 //
-//   type: 'text'   → chữ (mọi ký tự Unicode đều được: dấu tiếng Việt, ♥, ✦, emoji…)
-//   type: 'heart'  → hai trái tim tựa vào nhau
-//   type: 'rings'  → đôi nhẫn lồng nhau
-//   type: 'sphere' → quả cầu hạt (nhịp nghỉ giữa hai hình)
+//   type: 'text'     → chữ (mọi ký tự Unicode đều được: dấu tiếng Việt, ♥, ✦, emoji…)
+//   type: 'heart'    → hai trái tim tựa vào nhau
+//   type: 'rings'    → đôi nhẫn lồng nhau
+//   type: 'monogram' → HAI CHỮ CÁI LỒNG VÀO NHAU (viết 'H ♥ T' bằng type 'text'
+//                      thì hai chữ luôn rời nhau — font tự chừa khoảng cách)
+//   type: 'sphere'   → quả cầu hạt (nhịp nghỉ giữa hai hình)
 //
 // Tuỳ chọn cho mỗi mục:
 //   only:   'mobile' | 'desktop'   — chỉ hiện trên loại màn hình đó (bỏ trống = cả hai)
 //   font:   'serif' (mặc định) | 'script'  — script = kiểu nghiêng mềm, hợp với ngày tháng
 //   width:  0.3 … 1.0   — bề ngang chữ so với chiều rộng khả dụng (mặc định 1.0)
 //   size:   0.5 … 1.5   — cỡ của heart / rings / sphere (mặc định 1.0)
+//
+// Riêng monogram:
+//   left / right → hai chữ cái (mặc định 'H' và 'T')
+//   overlap: 0.10 … 0.18 — chồng lên nhau bao nhiêu (mặc định 0.10).
+//                          ĐỪNG hạ dưới 0.10: ở 0.06 nhìn thì tưởng dính nhưng
+//                          đo ra vẫn là HAI mảng rời. Từ 0.20 trở lên thì chữ
+//                          sau bị chữ trước nuốt dần.
+//   heart:   0           — tim treo ở chỗ giao nhau. Đang tắt vì bị hai chữ che
+//                          gần hết, chỉ còn mũi nhọn thò xuống nhìn như cái gai.
+//                          Muốn có tim thì để { type: 'heart' } riêng một nhịp.
 //
 // Chữ dài thì hạt bị dàn mỏng và khó đọc — nên giữ dưới ~20 ký tự mỗi dòng.
 // ---------------------------------------------------------------------------
@@ -34,7 +46,7 @@ export const PARTICLE = {
 
   sequence: [
     { type: 'heart' },
-    { type: 'rings' },
+    // { type: 'rings' },
 
     // Màn rộng đủ chỗ cho cả hai tên trên một dòng
     { type: 'text', text: 'Lê Huy ♥ Như Trang', only: 'desktop' },
@@ -50,7 +62,7 @@ export const PARTICLE = {
     { type: 'text', text: '❀', width: 0.4 },
     { type: 'text', text: '∞', width: 0.5 },
     { type: 'text', text: '🕊', width: 0.45 },     // bồ câu
-    { type: 'text', text: 'H ♥ T', width: 0.6 },
+    { type: 'monogram', left: 'H', right: 'T', width: 0.4 },
     // { type: 'sphere' },
 
     // Thêm chữ của bạn ở đây, ví dụ:

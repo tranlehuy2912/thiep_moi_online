@@ -354,7 +354,97 @@ export function ringsPoints(count, radius = 1.05, maxWidth = Infinity) {
 }
 
 // ===========================================================================
-//  Hình 3 — chữ → hạt
+//  Hình 3 — MONOGRAM: hai chữ cái lồng vào nhau
+//
+//  Vì sao phải có hàm riêng thay vì cứ fillText('HT'): canvas luôn đặt chữ
+//  theo metric của font, hai chữ KHÔNG BAO GIỜ chạm nhau. Muốn nối thì phải tự
+//  đo bề ngang từng chữ rồi kéo chữ sau đè lên chữ trước.
+//
+//  Hạt vẽ bằng blending CỘNG nên không có che khuất — chỗ hai nét giao nhau tự
+//  sáng hơn, đọc ra ngay là hai chữ đan vào nhau chứ không phải dán cạnh nhau.
+// ===========================================================================
+
+export const MONOGRAM = {
+  // Chồng bao nhiêu phần bề ngang của chữ HẸP hơn.
+  //
+  // 0.10 là chỗ chân chữ T gác đúng lên chân chữ H: hai chữ dính liền mà vẫn
+  // đọc rõ từng chữ. Đã dựng thử và nhìn tận mắt các mức 0.06 / 0.10 / 0.14 /
+  // 0.20 / 0.32 — từ 0.20 trở lên là chữ T bị chữ H nuốt dần, tới 0.32 thì cả
+  // cụm thành một khối không đọc được nữa.
+  //
+  // ⚠️ Đừng hạ xuống 0.06 dù nhìn vẫn "có vẻ" chạm nhau: đếm thành phần liên
+  // thông ra HAI mảng rời, tức là chưa dính thật. 0.10 mới là ngưỡng.
+  overlap: 0.1,
+
+  // Cỡ trái tim so với cỡ chữ. ĐANG TẮT (0) — và nên để nguyên vậy.
+  //
+  // Đã thử tim ở các cỡ 0.22 / 0.30 / 0.40 treo dưới chỗ giao nhau: hai chữ che
+  // mất phần trên của tim, chỉ còn cái mũi nhọn thò xuống dưới chân chữ, nhìn ra
+  // một cái gai chứ không ra trái tim. Muốn có tim thì dùng { type: 'heart' }
+  // riêng một nhịp trong PARTICLE.sequence, đẹp hơn nhiều.
+  heart: 0,
+
+  // Tim nằm thấp hơn tâm chữ bao nhiêu (theo cỡ chữ), nếu bật tim trở lại.
+  heartDrop: 0.34,
+}
+
+export function monogramPoints(count, opts = {}) {
+  const {
+    left = 'H',
+    right = 'T',
+    fontFamily = '"Playfair Display", Georgia, serif',
+    weight = 700,
+    fontSize = 300,
+    overlap = MONOGRAM.overlap,
+    heart = MONOGRAM.heart,
+    heartDrop = MONOGRAM.heartDrop,
+    targetWidth = 4,
+  } = opts
+
+  const c = document.createElement('canvas')
+  const ctx = c.getContext('2d', { willReadFrequently: true })
+  const font = `${weight} ${fontSize}px ${fontFamily}`
+
+  ctx.font = font
+  const wL = ctx.measureText(left).width
+  const wR = ctx.measureText(right).width
+  const dx = overlap * Math.min(wL, wR) // số pixel chữ sau lùi vào chữ trước
+  const pad = fontSize * 0.35
+
+  c.width = Math.ceil(wL + wR - dx + pad * 2)
+  c.height = Math.ceil(fontSize * 1.8 + pad * 2)
+
+  // đổi kích thước canvas là mọi thiết lập bị xoá sạch → phải set lại font
+  ctx.font = font
+  ctx.fillStyle = '#fff'
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'left'
+
+  const midY = c.height / 2
+  ctx.fillText(left, pad, midY)
+  ctx.fillText(right, pad + wL - dx, midY)
+
+  // Trái tim nhỏ treo ngay chỗ hai chữ giao nhau. Để tim to hoặc đặt vào giữa
+  // thân chữ thì nó nuốt mất nét, cả cụm thành một vệt sáng không đọc được.
+  if (heart > 0) {
+    fillHeart(
+      ctx,
+      heartOutline(),
+      pad + wL - dx / 2,
+      midY + fontSize * heartDrop,
+      (fontSize * heart) / HEART_H,
+      0,
+    )
+  }
+
+  return (
+    sampleMask(ctx, c.width, c.height, count, { step: 2, depth: 0.14, targetWidth }) ||
+    textPoints(`${left} ♥ ${right}`, count, { targetWidth })
+  )
+}
+
+// ===========================================================================
+//  Hình 4 — chữ → hạt
 // ===========================================================================
 
 export function textPoints(text, count, opts = {}) {
@@ -394,7 +484,7 @@ export function textPoints(text, count, opts = {}) {
 }
 
 // ===========================================================================
-//  Hình 4 — quả cầu (nhịp nghỉ giữa hai hình)
+//  Hình 5 — quả cầu (nhịp nghỉ giữa hai hình)
 // ===========================================================================
 
 export function spherePoints(count, radius = 1.55) {
