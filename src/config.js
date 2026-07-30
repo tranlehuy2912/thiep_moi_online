@@ -129,6 +129,42 @@ export const PARTICLE = {
   ],
 }
 
+// ---------------------------------------------------------------------------
+// ⭐ ẢNH CƯỚI LÀM NỀN (đang THỬ)
+//
+// Dùng lại đúng dãy ảnh của màn album, nhưng làm mờ + tối đi rồi đặt xuống làm
+// nền. Màn album KHÔNG bị ảnh hưởng gì, vẫn nét như cũ và vẫn kéo/bấm được.
+//
+// Không thích thì đặt enabled: false — hết, không phải sửa gì thêm.
+// ---------------------------------------------------------------------------
+export const HERO_PHOTOS = {
+  enabled: true,
+
+  // true  = làm nền cho MỌI màn, trừ màn album (ở đó ảnh đã rõ sẵn).
+  // false = chỉ làm nền cho màn mở đầu như trước.
+  everywhere: true,
+
+  // Độ đậm của ảnh nền. 0.3 là mờ ảo gần như không thấy, 0.75 là thấy rõ ảnh.
+  // Đừng quá ~0.85: tên cô dâu chú rể nằm đè lên, ảnh sáng quá là chữ chìm mất.
+  opacity: 0.5,
+
+  // Độ nhoè. 0 = nét như màn album; 1 ≈ nhoè vừa; 2 = nhoè mạnh như hậu cảnh.
+  blur: 0,
+
+  // Đổi ảnh sau bao nhiêu giây
+  every: 5,
+
+  // Ảnh PHÌNH DẦN theo tiến độ cuộn, cùng nhịp với camera: to nhất ở giữa
+  // trang (đúng chỗ màn album), rồi nhỏ lại về cuối. Đây là hiệu ứng liên tục,
+  // không phải đổi cỡ theo từng màn — nên không có chỗ nào nhảy giật.
+  //
+  // 0.18 nghĩa là ở đỉnh ảnh to hơn 18%; cộng với 1.2 lần do camera tiến vào,
+  // tổng khoảng 1.4 lần so với màn mở đầu.
+  // Đừng quá ~0.25: ảnh NGANG rộng gấp 2.25 lần ảnh dọc, đẩy cao hơn là nó
+  // tràn ra ngoài hai mép màn. Đặt 0 để tắt phình, chỉ còn camera.
+  swell: 0.18,
+}
+
 // Hai tiệc — nhà gái và nhà trai
 //
 // `place` là tên địa điểm NGẮN, chỉ dùng ở màn mở đầu (hero) dưới mỗi ngày.

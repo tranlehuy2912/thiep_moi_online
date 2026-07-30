@@ -7,17 +7,10 @@
 import { useMemo, useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { GALLERY, PALETTE } from '../config.js'
+import { GALLERY, PALETTE, HERO_PHOTOS } from '../config.js'
 import { getTexture, ensureLoaded, prefetchAll } from '../lib/textures.js'
 import { scrollState } from '../lib/scroll.js'
-
-export const galleryState = {
-  offset: 0, // vị trí hiện tại của dãy ảnh
-  target: 0, // vị trí ĐÍCH — dãy luôn damp về đây, nhờ vậy ảnh luôn dừng thẳng
-  dragging: false,
-  index: 0,
-  lastInput: 0,
-}
+import { galleryState } from '../lib/gallery.js'
 
 // Kéo bao nhiêu pixel thì sang một ảnh: GAP / GAIN ≈ 130px.
 // Trước đây GAIN = 0.006 → phải kéo gần 360px, nặng như kéo tạ.
@@ -36,14 +29,31 @@ const MIN_W = 0.8
 const MAX_W = 1.95
 const SPAN = () => GALLERY.length * GAP
 
+// Lùi cả dãy ảnh ra SAU mọi vật thể 3D (đơn vị world, không phải local).
+//
+// Trước đây dãy nằm đúng z = 0 — CÙNG CHỖ với đôi nhẫn ở màn hồi kết. Nhẫn là
+// khối đặc: nửa trước của nó ghi depth nên che được ảnh, còn nửa sau thì bị
+// tấm ảnh (mờ ~50%) phủ đè lên, bạc trắng ra. Nhìn y như nhẫn bị tấm hình cắt
+// mất một khúc, với đường ranh sắc lẻm ngay chỗ mặt phẳng ảnh xuyên qua.
+//
+// 2.6 là số ĐO ĐƯỢC chứ không áng chừng. Quét 60 tư thế xoay của đôi nhẫn ở cỡ
+// thật (scale 0.85, màn ngang): chỗ nhẫn với ra sau xa nhất là z = −1.71. Còn
+// tấm ảnh giữa thì bản thân nó cũng nghiêng theo con trỏ (rotation.x/y ±0.06)
+// nên mép ảnh chồm tới trước thêm ~0.28. 2.6 − 0.28 = −2.32, vẫn sau nhẫn
+// một khoảng 0.6 — không tư thế nào chạm nhau.
+const LUI = 2.6
+
 const vertex = /* glsl */ `
   uniform float uSpeed;
+  uniform float uGhost;
   varying vec2 vUv;
   void main() {
     vUv = uv;
     vec3 pos = position;
-    // kéo nhanh → ảnh xiên đi như bị gió tạt
-    pos.x += pos.y * uSpeed * 0.12;
+    // Kéo nhanh → ảnh xiên đi như bị gió tạt. Đúng ở album (khách đang kéo tay),
+    // nhưng ở chế độ nền màn mở đầu thì KHÔNG: album tự đổi ảnh mỗi mấy giây,
+    // ảnh nền tự dưng méo xiên đi trông như lỗi hiển thị.
+    pos.x += pos.y * uSpeed * 0.12 * (1.0 - uGhost);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `
@@ -53,16 +63,59 @@ const fragment = /* glsl */ `
   uniform float uSpeed;
   uniform float uFocus;    // 1 = ảnh đang ở giữa
   uniform float uOpacity;
+  uniform float uGhost;    // 1 = đang làm nền màn mở đầu (0 = album thật)
+  uniform float uBlur;     // độ nhoè, chỉ dùng khi uGhost = 1
   uniform vec2  uCover;
   uniform vec3  uTint;
   varying vec2 vUv;
 
   void main() {
     vec2 uv = (vUv - 0.5) / uCover + 0.5;
+    vec2 q = abs(vUv - 0.5) * 2.0;
+    vec3 col;
 
+    // ======================= Chế độ ảnh nền màn mở đầu =======================
+    // Điều kiện là uGhost, KHÔNG phải uBlur: người dùng có thể chọn blur = 0 mà
+    // vẫn đang ở chế độ nền. Trước đây gộp hai thứ này nên khi blur = 0 nó rơi
+    // vào nhánh album, kéo theo cả RGB-shift — ảnh nền tĩnh mà viền tách màu
+    // cầu vồng, nhìn như in lỗi.
+    if (uGhost > 0.5) {
+      if (uBlur > 0.001) {
+        // Nhoè bằng 9 điểm lấy mẫu. Rẻ (chỉ 7 tấm hiện cùng lúc) mà quan trọng
+        // hơn: nhoè THẬT thì tên cô dâu chú rể nằm đè lên mới đọc được. Chỉ hạ
+        // sáng mà giữ ảnh nét thì chi tiết ảnh cắt vào nét chữ, rối mắt.
+        float r = 0.011 * uBlur;
+        col  = texture2D(uTex, uv).rgb * 0.25;
+        col += texture2D(uTex, uv + vec2( r, 0.0)).rgb * 0.125;
+        col += texture2D(uTex, uv + vec2(-r, 0.0)).rgb * 0.125;
+        col += texture2D(uTex, uv + vec2(0.0,  r)).rgb * 0.125;
+        col += texture2D(uTex, uv + vec2(0.0, -r)).rgb * 0.125;
+        col += texture2D(uTex, uv + vec2( r,  r)).rgb * 0.0625;
+        col += texture2D(uTex, uv + vec2(-r,  r)).rgb * 0.0625;
+        col += texture2D(uTex, uv + vec2( r, -r)).rgb * 0.0625;
+        col += texture2D(uTex, uv + vec2(-r, -r)).rgb * 0.0625;
+      } else {
+        // blur = 0 → giữ nét, nhưng KHÔNG có RGB-shift
+        col = texture2D(uTex, uv).rgb;
+      }
+
+      // Ám nhẹ tông xanh đêm của thiệp cho ảnh hoà vào nền, đừng nổi lên như
+      // một tấm hình dán đè. Hạ sáng vừa phải thôi — hạ mạnh (từng thử 0.62) là
+      // ảnh biến mất hẳn, chỉ còn mấy vệt mờ, không ra ảnh cưới nữa.
+      col = mix(col, col * vec3(0.62, 0.78, 0.9), 0.35) * 0.9;
+
+      // rìa ảnh tan dần, không có mép cứng — nhìn ra hậu cảnh chứ không ra khung
+      // ảnh. Bắt đầu tan muộn (0.82) để giữ được phần lớn khuôn hình.
+      // Cũng KHÔNG có viền vàng: viền là để đánh dấu ảnh đang chọn ở album.
+      float soft = 1.0 - smoothstep(0.82, 1.04, max(q.x, q.y));
+      gl_FragColor = vec4(col, soft * uOpacity);
+      #include <colorspace_fragment>
+      return;
+    }
+
+    // ============================ Chế độ album ==============================
     // RGB shift theo tốc độ kéo
     float s = clamp(uSpeed, -1.5, 1.5) * 0.012;
-    vec3 col;
     col.r = texture2D(uTex, uv + vec2(s, 0.0)).r;
     col.g = texture2D(uTex, uv).g;
     col.b = texture2D(uTex, uv - vec2(s, 0.0)).b;
@@ -75,7 +128,6 @@ const fragment = /* glsl */ `
     col *= 0.88;
 
     // bo góc mềm
-    vec2 q = abs(vUv - 0.5) * 2.0;
     float corner = 1.0 - smoothstep(0.9, 1.0, max(q.x, q.y));
 
     // viền vàng mảnh quanh ảnh đang được chọn
@@ -98,6 +150,8 @@ function Slide({ item, index, total, shared }) {
       uSpeed: { value: 0 },
       uFocus: { value: 0 },
       uOpacity: { value: 0 },
+      uGhost: { value: 0 },
+      uBlur: { value: 0 },
       uCover: { value: new THREE.Vector2(1, 1) },
       uTint: { value: new THREE.Color(PALETTE.gold) },
     }),
@@ -131,6 +185,10 @@ function Slide({ item, index, total, shared }) {
 
     // Khung ăn theo tỉ lệ ảnh THẬT: chiều cao cố định, chiều ngang co giãn.
     // Nhờ vậy ảnh ngang không bị cắt cụt đầu–chân như khi ép vào khung dọc.
+    //
+    // MỘT công thức duy nhất cho mọi màn. Cỡ ảnh to dần rồi nhỏ lại là do
+    // group scale phình theo tiến độ cuộn (xem `phinh` bên dưới) — liên tục,
+    // KHÔNG có chỗ nào nhảy giật.
     const img = tex.image
     let w = MIN_W
     if (img?.width) w = THREE.MathUtils.clamp((img.width / img.height) * H, MIN_W, MAX_W)
@@ -146,6 +204,20 @@ function Slide({ item, index, total, shared }) {
 
     u.uFocus.value = focus
     u.uSpeed.value = shared.current.speed
+    u.uBlur.value = shared.current.blur
+
+    // Ở chế độ làm nền màn mở đầu, ảnh KHÔNG được che cụm hạt.
+    //
+    // Vì sao trước đây bị che: tấm ở giữa nằm đúng z = 0, cùng độ sâu với cụm
+    // hạt, mà ảnh thì ghi depth (mặc định bật) còn hạt thì depthWrite: false.
+    // Thành ra mấy tấm nghiêng chồm ra trước ghi depth xong là hạt bị loại khỏi
+    // khung. Tắt ghi depth + đẩy xuống vẽ trước là hạt luôn nổi lên trên.
+    const nen = shared.current.ghost > 0.5
+    u.uGhost.value = nen ? 1 : 0
+    mat.current.depthWrite = !nen
+    // renderOrder phải đặt trên TỪNG mesh — three.js sắp xếp theo từng object,
+    // đặt ở group cha không có tác dụng.
+    mesh.current.renderOrder = nen ? -2 : 0
     // Chỉ giữ ~7 ảnh quanh tâm, còn lại tắt hẳn: vừa đỡ tốn, vừa không thấy
     // ảnh "nhảy" ở mép lúc dãy gấp vòng.
     const fade = 1 - THREE.MathUtils.smoothstep(Math.abs(x), GAP * 2.5, GAP * 3.4)
@@ -169,21 +241,25 @@ function Slide({ item, index, total, shared }) {
   )
 }
 
-export default function CurvedGallery({ active = true }) {
-  const { viewport } = useThree()
-  const shared = useRef({ speed: 0, opacity: 0 })
+// `ghost` = đang làm NỀN cho một màn nào đó (mờ + tối, không bấm được), khác hẳn
+// `active` = đang là màn album thật (nét, kéo ngang được).
+export default function CurvedGallery({ active = true, ghost = false }) {
+  const { viewport, camera } = useThree()
+  const shared = useRef({ speed: 0, opacity: 0, blur: 0, ghost: 0, k: 1 })
   const group = useRef()
 
-  // Tải nốt cả album ở chế độ nền.
+  // Tải HẾT cả album, càng sớm càng tốt.
   //
   // KHÔNG dựa vào vùng ±N ô quanh tâm để tải: kéo nhanh là offset nhảy qua cả
   // vùng đó trong một frame, ảnh không bao giờ được yêu cầu và khách chỉ thấy
   // ảnh giữ chỗ (đã đo trên bản chạy thật: 8/40 ảnh được request).
   //
-  // Hoãn 2.5 giây để không giành băng thông với khung hình đầu và với font.
+  // Hoãn 2.5 giây là QUÁ MUỘN: ảnh giờ còn làm nền cho các màn khác nữa, mà
+  // khách cuộn nhanh thì tới nơi ảnh vẫn chưa về. Chỉ chờ 300ms cho khung hình
+  // đầu kịp vẽ, rồi tải ồ ạt — cả album 2.6MB, không đáng phải rón rén.
   useEffect(() => {
     const urls = GALLERY.map((g) => g.src)
-    const t = setTimeout(() => prefetchAll(urls), 2500)
+    const t = setTimeout(() => prefetchAll(urls), 300)
     return () => clearTimeout(t)
   }, [])
 
@@ -270,8 +346,10 @@ export default function CurvedGallery({ active = true }) {
 
       // Đã bỏ dòng chữ "kéo ngang để xem tiếp", nên album tự sang ảnh sau vài
       // giây không ai chạm — đó chính là thứ cho khách biết còn ảnh phía sau.
+      // Ở chế độ nền màn mở đầu cũng tự đổi ảnh, theo nhịp riêng trong config.
       const settled = Math.abs(galleryState.target - galleryState.offset) < 0.01
-      if (active && settled && performance.now() - galleryState.lastInput > AUTO_MS) {
+      const nhip = active ? AUTO_MS : (HERO_PHOTOS.every ?? 5) * 1000
+      if ((active || ghost) && settled && performance.now() - galleryState.lastInput > nhip) {
         galleryState.target += GAP
         galleryState.lastInput = performance.now()
       }
@@ -283,17 +361,58 @@ export default function CurvedGallery({ active = true }) {
     // RGB shift ăn theo tốc độ dịch THỰC TẾ của frame này
     const frameVel = (galleryState.offset - prev) / Math.max(d, 0.001)
     s.speed += (frameVel * 0.9 - s.speed) * 0.18
-    s.opacity = THREE.MathUtils.damp(s.opacity, active ? 1 : 0, 5, d)
+    // Ba trạng thái: album thật (1) → nền màn mở đầu (mờ) → tắt (0)
+    const dich = active ? 1 : ghost ? (HERO_PHOTOS.opacity ?? 0.3) : 0
+    s.opacity = THREE.MathUtils.damp(s.opacity, dich, 5, d)
+    // Album thật thì KHÔNG nhoè. Chỉ nhoè khi đang làm nền.
+    s.blur = THREE.MathUtils.damp(s.blur, active ? 0 : ghost ? (HERO_PHOTOS.blur ?? 1.15) : 0, 5, d)
+    // Cờ "đang làm nền" — phải tách riêng khỏi `blur`, vì blur có thể để 0 mà
+    // vẫn đang ở chế độ nền (người dùng chọn không làm mờ).
+    s.ghost = !active && ghost ? 1 : 0
 
     if (group.current) {
       group.current.visible = s.opacity > 0.01
-      // Màn album không còn tiêu đề nào → ảnh được căn giữa và to hơn trước
       const narrow = viewport.width < viewport.height
-      const k = narrow
+
+      const kBase = narrow
         ? Math.min(viewport.width * 0.82, viewport.height * 0.4)
         : Math.min(viewport.width * 0.26, viewport.height * 0.5)
-      group.current.scale.setScalar(k)
+
+      // Phình dần theo tiến độ cuộn, ĐÚNG NHỊP với camera (`z = 9 − sin(p·π)·1.5`
+      // trong CameraRig). Album nằm giữa trang nên nó rơi đúng đỉnh — ảnh lớn
+      // nhất ở đó, rồi nhỏ lại về cuối.
+      //
+      // Cố ý KHÔNG đổi cỡ theo màn đang xem: làm vậy là ảnh nhảy giật một cái
+      // khi bước vào album. Cả trang chỉ có MỘT công thức, chạy liên tục.
+      //
+      // Nhân thêm 1.18 ở đỉnh, cộng với 1.2 lần camera tiến vào, ra khoảng 1.4
+      // lần so với màn mở đầu — đủ để ảnh gần lấp chiều cao màn ở album mà ảnh
+      // ngang (rộng gấp 2.25 lần ảnh dọc) vẫn không tràn hai mép.
+      const phinh = 1 + Math.sin(scrollState.smooth * Math.PI) * (HERO_PHOTOS.swell ?? 0.18)
+
+      // Chặn trên, tính từ hình học chứ không hardcode theo thiết bị: ảnh DỌC
+      // (29 trong 40 tấm) không được vượt 96% bề ngang màn vào lúc camera tiến
+      // gần nhất — chỗ đó khung nhìn hẹp lại 1.2 lần.
+      //
+      // Không chặn thì máy bàn vẫn thoải mái (chỉ 34%) nhưng ĐIỆN THOẠI tràn:
+      // tính ra 109% bề ngang ở đỉnh, ảnh dọc bị cắt cụt hai bên.
+      const wDoc = THREE.MathUtils.clamp(0.666 * H, MIN_W, MAX_W) * 1.08
+      const phinhMax = Math.max(1, (viewport.width * 0.96) / (kBase * wDoc * 1.2))
+
+      // Khoảng cách các tấm cũng phình theo (vì nằm cùng group) → không bao giờ
+      // chồng nhau, khỏi phải tính lại GAP.
+      // Lùi ra sau thì phối cảnh làm ảnh nhỏ đi — nhân bù lại đúng bằng tỉ lệ
+      // khoảng cách, nên cỡ ảnh TRÊN MÀN HÌNH không đổi một pixel nào. Phải lấy
+      // camera.position.z sống (camera có tiến/lùi theo cuộn) chứ không hằng số,
+      // nếu không thì nhịp phình ở giữa trang sẽ lệch đi.
+      const bu = (camera.position.z + LUI) / camera.position.z
+
+      // Nhân SAU khi đã kẹp phinhMax: kẹp đó tính theo bề ngang trên màn hình,
+      // mà `bu` chỉ bù lại đúng phần phối cảnh vừa mất — trên màn hình vẫn y hệt.
+      s.k = kBase * Math.min(phinh, phinhMax) * bu
+      group.current.scale.setScalar(s.k)
       group.current.position.y = 0
+      group.current.position.z = -LUI
       group.current.rotation.x = scrollState.pointerSmooth.y * -0.06
       group.current.rotation.y = scrollState.pointerSmooth.x * 0.05
     }

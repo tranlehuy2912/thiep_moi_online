@@ -21,7 +21,7 @@ import GoldEnvironment from './GoldEnvironment.jsx'
 
 import { scrollState } from '../lib/scroll.js'
 import { q, PREFERS_REDUCED } from '../lib/quality.js'
-import { SECTIONS } from '../config.js'
+import { SECTIONS, HERO_PHOTOS } from '../config.js'
 import { useStore } from '../store.js'
 
 const I = Object.fromEntries(SECTIONS.map((s, i) => [s.id, i]))
@@ -109,7 +109,14 @@ export default function Stage() {
         <directionalLight position={[3, 5, 4]} intensity={2.2} color="#FFD79A" />
 
         <ParticleMorph active={showHero} />
-        <CurvedGallery active={showGallery} />
+        {/* ghost = dùng chính dãy ảnh này làm nền mờ. Đang THỬ — tắt bằng
+            HERO_PHOTOS.enabled trong config.js, màn album không đổi.
+            Luôn loại trừ màn album: ở đó `active` mới là chế độ đúng (ảnh nét,
+            kéo được, bấm xem to). Bật cả hai cùng lúc là ảnh vừa nét vừa mờ. */}
+        <CurvedGallery
+          active={showGallery}
+          ghost={HERO_PHOTOS.enabled && !showGallery && (HERO_PHOTOS.everywhere || showHero)}
+        />
         <Rings active={showRings} />
 
         {!PREFERS_REDUCED && (

@@ -112,13 +112,16 @@ export function ensureLoaded(url, onLoad) {
 //  tải nữa. Đo trên nhutrang.site: chỉ 8 trong 40 ảnh từng được request, đúng 8
 //  ảnh nằm trong vùng ban đầu.
 //
-//  Cả album chỉ ~1.7MB nên tải hết chẳng đáng gì. Thứ đáng tiết kiệm là ĐỪNG
-//  tải cùng lúc với khung hình đầu — nên xếp hàng, mỗi lúc chỉ vài ảnh, và
-//  nhường đường cho `ensureLoaded` (ảnh khách đang xem) chen lên trước.
+//  Cả album ~2.6MB nên tải hết chẳng đáng gì. Thứ đáng tiết kiệm là ĐỪNG tải
+//  cùng lúc với khung hình đầu — nên có độ trễ ngắn, còn sau đó thì tải ồ ạt.
+//
+//  MAX_SONG_SONG = 8, không phải 3: ở 3 thì 40 ảnh phải xếp 14 lượt mới xong,
+//  khách cuộn nhanh tới album là gặp ảnh chưa về. Trên HTTP/2 (mọi host tĩnh
+//  hiện nay) các request được ghép kênh nên 8 cái song song không nghẽn gì.
 // ---------------------------------------------------------------------------
 let queue = []
 let inflight = 0
-const MAX_SONG_SONG = 3
+const MAX_SONG_SONG = 8
 
 function pump() {
   while (inflight < MAX_SONG_SONG && queue.length) {
