@@ -220,10 +220,14 @@ export function Details() {
         Thiệp hồng trao tay, gửi nụ cười.<br />
         Bạn ghé bên nào mình cũng đợi,<br />
         Chung ly rượu chúc, vạn ngày vui. */}
-        Từ nay duyên thắm mãi không thôi<br />
+        {/* Từ nay duyên thắm mãi không thôi<br />
         Tiệc cưới hai nơi đã sẵn rồi<br />
         Tháng Chín hai mươi nhà gái đợi<br />
-        Tháng Mười mùng bốn bước chung đôi
+        Tháng Mười mùng bốn bước chung đôi */}
+        Vu Quy Quảng Trị rộn ràng<br />
+        Hai mươi tháng Chín, nắng vàng đẹp tươi<br />
+        Sài Gòn mồng bốn tháng Mười<br />
+        Thành Hôn rượu ngọt, tiếng cười trăm năm
       </p>
 
       <div className="events">
@@ -441,10 +445,14 @@ export function Rsvp() {
         Mâm bàn tươm tất đón đoàn bạn thân.<br />
         Xin đừng ngại ngần phân vân,<br />
         Trước ngày mười chín nhắn trân trọng lời. */}
-        Hai ngày, hai tiệc, hai nơi<br />
+        {/* Hai ngày, hai tiệc, hai nơi<br />
         Tiện đường anh chị ghé chơi hôm nào<br />
         Chỉ cần một chữ gửi trao<br />
-        Là bên này biết dọn bao nhiêu bàn
+        Là bên này biết dọn bao nhiêu bàn */}
+        Xin người lưu lại tôn danh<br />
+        Để trong sổ ngọc còn dành một trang<br />
+        Quang lâm hay lỡ đôi đàng<br />
+        Cũng xin một tiếng, đôi hàng tri âm
       </p>
 
       {sent ? (
@@ -591,10 +599,14 @@ export function Outro() {
 
       <h2 className="thanks reveal">Hồi Kết</h2>
       <p className="lead reveal" style={{ margin: '14px auto 0' }}>
-        Cảm ơn mấy bạn, bớt thời gian<br />
+        {/* Cảm ơn mấy bạn, bớt thời gian<br />
         Đọc hết trăm ngàn, ý chứa chan<br />
         Tiệc cưới đôi nơi, bày cỗ đợi<br />
-        Ngày vui có bạn, trọn bình an
+        Ngày vui có bạn, trọn bình an */}
+        Cảm ơn bạn bớt thời gian<br />
+        Xin ghi khoảnh khắc chứa chan ân tình<br />
+        Mai này dẫu có lặng thinh<br />
+        Nhớ nhau còn thấy bóng hình đâu đây
       </p>
 
       <div className="ornament">✦</div>

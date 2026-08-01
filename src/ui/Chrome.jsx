@@ -125,18 +125,39 @@ export function Music() {
 
   return (
     <button
-      className={`music ${on ? '' : 'off'}`}
+      className={`music ${on ? 'on' : 'off'}`}
       onClick={() => setOn(!on)}
       aria-label={on ? 'Tắt nhạc' : 'Bật nhạc'}
       title={on ? 'Tắt nhạc' : 'Bật nhạc'}
       data-interactive
     >
-      <span className="bars" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-        <span />
+      {/* Hai vòng sóng lan ra khi đang phát. Nằm trong nút nhưng scale vượt ra
+          ngoài — đó mới là thứ khách thấy được từ khoé mắt, chứ nút 44px đứng im
+          thì không ai biết nhạc đang chạy. */}
+      <span className="song" aria-hidden="true">
+        <i />
+        <i />
       </span>
+
+      {/* Nốt đơn ♪: một nét liền cho thân + đuôi móc, đầu nốt là ellipse nghiêng.
+          Vẽ tay chứ không dùng ký tự ♪ — ký tự phụ thuộc font hệ thống, mỗi máy
+          ra một kiểu và canh giữa không bao giờ chuẩn. Chọn nốt ĐƠN thay vì nốt
+          đôi ♫ vì ở cỡ thật 44px thì ít nét hơn là sạch hơn. */}
+      <svg className="note" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12.4 16.6V4.4c0 3.4 5 2.6 5 6.6"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <ellipse cx="9.6" cy="16.8" rx="3" ry="2.4" transform="rotate(-20 9.6 16.8)" fill="currentColor" />
+        {/* gạch chéo chỉ hiện khi tắt — trạng thái tắt phải đọc được ngay, chứ
+            chỉ làm mờ đi thì nhìn như nút bị vô hiệu hoá. Hướng ↘ để cắt ngang
+            thân nốt; hướng ↗ thì gần như trùng chiều đuôi móc, nhìn lẫn vào nét
+            nốt chứ không ra dấu gạch bỏ. */}
+        <path className="slash" d="M4.5 4.5L19.5 19.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
     </button>
   )
 }

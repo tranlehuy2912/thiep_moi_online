@@ -116,7 +116,29 @@ export function initScroll() {
 }
 
 // Cuộn tới 1 màn (dùng cho nav dots)
+//
+// Phải TẮT snap trong lúc nhảy. Các màn có `scroll-snap-stop: always` (xem
+// styles.css) để mỗi cú vuốt chỉ đi một màn — nhưng trình duyệt áp luật đó cho
+// CẢ cuộn mượt bằng lệnh. Không tắt thì bấm chấm "Hồi kết" ở màn mở đầu, nó
+// dừng ngay tại màn thứ hai; nav coi như hỏng.
+let phienNhay = 0
 export function scrollToSection(i) {
   const el = els[i]
-  if (el) window.scrollTo({ top: el.offsetTop, behavior: 'smooth' })
+  if (!el) return
+  const root = document.documentElement
+  const phien = ++phienNhay
+
+  root.style.scrollSnapType = 'none'
+  const batLai = () => {
+    window.removeEventListener('scrollend', batLai)
+    // đã có cú nhảy mới chen vào thì để cú đó lo, đừng bật snap giữa chừng
+    if (phien !== phienNhay) return
+    root.style.scrollSnapType = ''
+  }
+  window.addEventListener('scrollend', batLai)
+  // Safari cũ chưa có 'scrollend' → luôn kèm hẹn giờ dự phòng, nếu không thì
+  // snap tắt vĩnh viễn sau cú bấm nav đầu tiên.
+  setTimeout(batLai, 1200)
+
+  window.scrollTo({ top: el.offsetTop, behavior: 'smooth' })
 }

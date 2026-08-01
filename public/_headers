@@ -1,0 +1,30 @@
+# Cấu hình bộ nhớ đệm cho Netlify.
+#
+# Netlify đọc file này ở gốc thư mục xuất bản. Vite chép nguyên public/ sang
+# dist/ nên đặt ở đây là đúng chỗ — không phải thêm bước build nào.
+#
+# Mặc định của Netlify là `max-age=0, must-revalidate` cho MỌI file: khách mở
+# lại thiệp lần hai là hỏi lại server từng file một. Với 40 ảnh + 683KB three.js
+# thì đó là hơn 45 vòng đi-về, trên mạng điện thoại rất tốn thời gian chờ.
+#
+# ⚠️ TUYỆT ĐỐI KHÔNG thêm luật cho `/` hay `/index.html`. File đó PHẢI luôn hỏi
+#    lại server, vì nó chứa tên các file assets mới. Nhớ index.html là deploy
+#    xong khách vẫn xem bản cũ.
+
+# Vite gắn mã băm vào tên (index-D71VgLhz.js). Nội dung đổi thì tên đổi theo,
+# nên nhớ vĩnh viễn là an toàn tuyệt đối — đây là phần lợi nhất, 800KB.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Ảnh và nhạc thì KHÔNG có mã băm trong tên (album-1.webp, nhac.mp3), nên nhớ
+# lâu là dao hai lưỡi: thay ảnh xong khách vẫn thấy ảnh cũ tới lúc hết hạn.
+# 1 ngày là mức cân bằng — đủ để khách mở đi mở lại trong ngày không phải chờ,
+# mà thay ảnh thì hôm sau là khách thấy bản mới.
+#
+# Cần khách thấy ảnh mới NGAY thì đổi tên file (album-5b.webp) rồi sửa
+# GALLERY trong src/config.js — tên khác là bộ nhớ đệm cũ hết tác dụng.
+/photos/*
+  Cache-Control: public, max-age=86400
+
+/audio/*
+  Cache-Control: public, max-age=86400

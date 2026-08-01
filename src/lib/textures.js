@@ -71,6 +71,23 @@ export function getTexture(url, { label = '', seed = 0 } = {}) {
   return cache.get(url)
 }
 
+// Mạng điện thoại rớt một nhịp là ảnh đó hỏng. Thử lại tối đa 3 lần, nguội dần
+// 0.9s → 1.8s → 2.7s.
+const SO_LAN_THU = 3
+const NGUOI = 900
+
+// Còn được phép gọi tải nữa không?
+//
+// Vì sao phải có hàng nguội: cứ hỏng là `requested` mở lại, mà ensureLoaded thì
+// được gọi MỖI FRAME cho những tấm quanh tâm. Không chặn thì một ảnh 404 sẽ bị
+// gọi tải lại 60 lần mỗi giây vào cùng một URL — vừa vô ích vừa đúng kiểu hành
+// vi khiến host chặn IP.
+function coTheTai(tex) {
+  if (!tex || tex.userData.requested || tex.userData.real) return false
+  if ((tex.userData.hong || 0) >= SO_LAN_THU) return false
+  return !(tex.userData.thuLaiSau && performance.now() < tex.userData.thuLaiSau)
+}
+
 function startLoad(url, tex, onLoad, onDone) {
   tex.userData.requested = true
   loader.load(
@@ -89,6 +106,18 @@ function startLoad(url, tex, onLoad, onDone) {
       // PHẢI mở lại cờ. Để `requested` vẫn true thì một lần mạng hỏng là ảnh đó
       // VĨNH VIỄN không bao giờ tải lại, khách chỉ còn thấy ảnh giữ chỗ.
       tex.userData.requested = false
+      const lan = (tex.userData.hong = (tex.userData.hong || 0) + 1)
+      const cho = NGUOI * lan
+      tex.userData.thuLaiSau = performance.now() + cho
+      // Tự xếp lại hàng chứ không ngồi chờ khách kéo ngang tới đúng chỗ đó:
+      // ảnh nền chạy ở mọi màn, tấm hỏng có khi tới cuối trang mới quay lại.
+      if (lan < SO_LAN_THU) {
+        setTimeout(() => {
+          if (!coTheTai(cache.get(url))) return
+          if (!queue.includes(url)) queue.push(url)
+          pump()
+        }, cho + 40)
+      }
       onDone?.()
     },
   )
@@ -98,7 +127,7 @@ function startLoad(url, tex, onLoad, onDone) {
 // Gọi bao nhiêu lần cũng được, chỉ tải một lần.
 export function ensureLoaded(url, onLoad) {
   const tex = cache.get(url)
-  if (!url || !tex || tex.userData.requested) return tex
+  if (!url || !coTheTai(tex)) return tex
   startLoad(url, tex, onLoad)
   return tex
 }
@@ -127,7 +156,7 @@ function pump() {
   while (inflight < MAX_SONG_SONG && queue.length) {
     const url = queue.shift()
     const tex = cache.get(url)
-    if (!tex || tex.userData.requested) continue // đã tải hoặc đang tải
+    if (!coTheTai(tex)) continue // xong rồi, đang tải, hoặc đang nằm hàng nguội
     inflight++
     startLoad(url, tex, undefined, () => {
       inflight--
@@ -139,10 +168,22 @@ function pump() {
 export function prefetchAll(urls) {
   for (const u of urls) {
     if (!cache.has(u)) continue // chưa có texture giữ chỗ thì chưa tới lượt
-    if (cache.get(u).userData.requested) continue
+    if (!coTheTai(cache.get(u))) continue
     if (!queue.includes(u)) queue.push(u)
   }
   pump()
+}
+
+// Còn tấm nào chưa về không — dùng để báo tiến độ / kiểm tra.
+export function tinhTrangTai(urls) {
+  let xong = 0
+  let hong = 0
+  for (const u of urls) {
+    const t = cache.get(u)
+    if (t?.userData.real) xong++
+    else if ((t?.userData.hong || 0) >= SO_LAN_THU) hong++
+  }
+  return { xong, hong, tong: urls.length, dangCho: urls.length - xong - hong }
 }
 
 // Tải ngay (dùng cho ảnh đơn lẻ, không phải album)

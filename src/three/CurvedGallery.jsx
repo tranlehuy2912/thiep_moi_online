@@ -163,6 +163,8 @@ const fragment = /* glsl */ `
 function Slide({ item, index, total, shared }) {
   const mesh = useRef()
   const mat = useRef()
+  // 0 khi ảnh thật chưa về, dâng lên 1 khi đã về — xem chỗ dùng ở useFrame
+  const hienRa = useRef(0)
   const tex = useMemo(() => getTexture(item.src, { label: item.caption, seed: index + 20 }), [item, index])
 
   const uniforms = useMemo(
@@ -179,7 +181,7 @@ function Slide({ item, index, total, shared }) {
     [tex],
   )
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const u = mat.current?.uniforms
     if (!u || !mesh.current) return
     const span = SPAN()
@@ -256,7 +258,18 @@ function Slide({ item, index, total, shared }) {
     // Chỉ giữ ~7 ảnh quanh tâm, còn lại tắt hẳn: vừa đỡ tốn, vừa không thấy
     // ảnh "nhảy" ở mép lúc dãy gấp vòng.
     const fade = 1 - THREE.MathUtils.smoothstep(Math.abs(x), GAP * 2.5, GAP * 3.4)
-    u.uOpacity.value = shared.current.opacity * fade
+
+    // Chưa có ảnh THẬT thì ẩn hẳn, tuyệt đối không hiện thẻ giữ chỗ.
+    //
+    // Thẻ giữ chỗ in đúng dòng "thả ảnh vào public/photos/" — lời nhắn cho lập
+    // trình viên, không phải cho khách mời. Ảnh về chậm vài giây (mạng điện
+    // thoại) là khách đọc thấy dòng đó ngay cạnh tên cô dâu chú rể. Thà trống
+    // một lát: nền ảnh vốn chỉ là trang trí, thiếu vài giây không ai nhận ra.
+    //
+    // Dâng lên bằng damp chứ không bật phựt: ảnh về là nó hiện ra êm.
+    hienRa.current = THREE.MathUtils.damp(hienRa.current, tex.userData.real ? 1 : 0, 6, Math.min(dt, 0.05))
+
+    u.uOpacity.value = shared.current.opacity * fade * hienRa.current
     mesh.current.visible = u.uOpacity.value > 0.01
   })
 

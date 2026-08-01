@@ -4,6 +4,7 @@ import { Progress, Nav, Music } from './ui/Chrome.jsx'
 import { initScroll, setSectionListener } from './lib/scroll.js'
 import { useReveal } from './lib/useReveal.js'
 import { hasWebGL, watchFps } from './lib/quality.js'
+import { hamNongAnh } from './lib/hamnong-anh.js'
 import { useStore } from './store.js'
 
 // Canvas + three.js tách thành chunk riêng, chỉ tải sau khi phần chữ đã hiện.
@@ -17,6 +18,8 @@ export default function App() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    // Gọi ngay ở đây, KHÔNG chờ chunk 3D: ảnh và JavaScript tải song song.
+    hamNongAnh()
     setSectionListener(setSection)
     const stop = initScroll()
     const stopFps = watchFps((tier) => setTier(tier))
