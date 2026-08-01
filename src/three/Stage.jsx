@@ -34,7 +34,10 @@ function CameraRig() {
   // móc gỡ lỗi khi chạy dev (xem README); bản production không có
   if (import.meta.env.DEV) window.__scene = scene
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
+    // Móc gỡ lỗi bản dev: state của R3F có `internal.subscribers` + `gl`, đủ để
+    // quay tay từng frame khi tab bị ẩn (trình duyệt treo rAF, cảnh đứng hình).
+    if (import.meta.env.DEV) window.__r3f = state
     const d = Math.min(dt, 0.05)
     const p = scrollState.smooth
 

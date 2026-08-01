@@ -29,6 +29,27 @@ const MIN_W = 0.8
 const MAX_W = 1.95
 const SPAN = () => GALLERY.length * GAP
 
+// ---------------------------------------------------------------------------
+//  Giữ VRAM trong mức điện thoại chịu được.
+//
+//  three.js KHÔNG BAO GIỜ tự nhả texture: tấm nào đã được vẽ một lần là nằm lại
+//  trong VRAM tới lúc đóng tab. Khách xem hết album một lượt là cả 40 tấm nằm
+//  hết cùng lúc: 40 × (1066×1600×4 byte) × 1.33 (mipmap) = 347MB. Máy bàn thừa
+//  sức (đã đo trên M1 Pro: chạy đủ 40), nhưng điện thoại thì vượt hạn mức →
+//  lệnh upload thất bại và tấm đó hiện ra ô trống. Đó cũng là lý do MỖI LẦN mở
+//  lại thấy MẤY TẤM KHÁC bị mất, chứ không cố định tấm nào — dấu hiệu của thiếu
+//  bộ nhớ, chứ lỗi logic thì sẽ sai y một chỗ.
+//
+//  Nhả ở đây chỉ nhả bản trên GPU. Ảnh đã tải vẫn nằm nguyên trong RAM (chính
+//  cái <img> đó), nên nạp lại KHÔNG phát thêm request — vẫn đúng yêu cầu "tải
+//  một lần luôn".
+//
+//  Hai ngưỡng lệch nhau (nhả ở 5 ô, nạp lại ở 4 ô) để tấm nằm đúng ranh giới
+//  không bị nhả–nạp qua lại mỗi frame. Vùng ±5 ô là 11 tấm ≈ 100MB.
+// ---------------------------------------------------------------------------
+const NHA_GPU = GAP * 5
+const NAP_GPU = GAP * 4
+
 // Lùi cả dãy ảnh ra SAU mọi vật thể 3D (đơn vị world, không phải local).
 //
 // Trước đây dãy nằm đúng z = 0 — CÙNG CHỖ với đôi nhẫn ở màn hồi kết. Nhẫn là
@@ -178,7 +199,21 @@ function Slide({ item, index, total, shared }) {
     // Ảnh sắp vào tầm nhìn thì tải NGAY, chen trước hàng đợi nền.
     // Nới từ GAP*4 lên GAP*6: vùng hiện hình tắt hẳn ở GAP*3.4, chừa rộng hơn
     // để lúc kéo nhanh ảnh kịp về trước khi tới giữa khung.
-    if (Math.abs(x) < GAP * 6) ensureLoaded(item.src)
+    const ax = Math.abs(x)
+    if (ax < GAP * 6) ensureLoaded(item.src)
+
+    // Nhả texture khỏi GPU khi ảnh đi xa khỏi tầm nhìn — xem NHA_GPU.
+    // File ảnh vẫn nằm nguyên trong RAM nên nạp lại KHÔNG tốn thêm request nào.
+    if (ax > NHA_GPU) {
+      if (tex.userData.tren_gpu) {
+        tex.dispose()
+        tex.userData.tren_gpu = false
+      }
+    } else if (ax < NAP_GPU && !tex.userData.tren_gpu) {
+      // dispose() đã xoá bản upload cũ, đánh dấu để three.js nạp lại
+      tex.needsUpdate = true
+      tex.userData.tren_gpu = true
+    }
 
     const focus = Math.max(0, 1 - Math.abs(x) / (GAP * 1.15))
     const zoom = 0.88 + focus * 0.2
