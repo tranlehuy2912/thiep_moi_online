@@ -38,11 +38,39 @@ export function Nav() {
   )
 }
 
+// Nhớ lựa chọn bật/tắt nhạc giữa các lần mở thiệp.
+//
+// CHỈ ghi khi khách TỰ BẤM nút. Nhạc tự phát rồi khách không đụng tới thì không
+// tính là lựa chọn — để đó, lần sau vẫn tự phát.
+const KHOA_NHAC = 'thiep:nhac'
+
+// null = khách chưa từng chọn gì
+function docYThich() {
+  try {
+    const v = localStorage.getItem(KHOA_NHAC)
+    return v === null ? null : v === '1'
+  } catch {
+    // Safari chế độ riêng tư và mấy trình duyệt chặn cookie NÉM lỗi ở dòng
+    // trên. Để lỗi thoát ra là cả nút nhạc chết theo — nuốt, coi như chưa chọn.
+    return null
+  }
+}
+
+function ghiYThich(bat) {
+  try {
+    localStorage.setItem(KHOA_NHAC, bat ? '1' : '0')
+  } catch {
+    /* xem docYThich */
+  }
+}
+
 export function Music() {
   const on = useStore((s) => s.musicOn)
   const setOn = useStore((s) => s.setMusicOn)
   const [available, setAvailable] = useState(true)
   const audio = useRef(null)
+  // Khách đã tự bấm nút chưa — xem chỗ dùng ở `batDau` bên dưới
+  const daTuChon = useRef(false)
 
   useEffect(() => {
     const a = new Audio(MUSIC.src)
@@ -78,28 +106,49 @@ export function Music() {
     }
   }, [])
 
-  // Trình duyệt chỉ cho phát nhạc sau một thao tác thật của người dùng.
-  // Không còn màn "Mở thiệp" nữa nên bắt lấy cú chạm/gõ phím ĐẦU TIÊN, dù ở đâu.
+  // Mở thiệp là nhạc chạy.
   useEffect(() => {
-    const start = () => {
-      const a = audio.current
-      if (!a) return
-      a.play()
-        .then(() => setOn(true))
-        .catch(() => {
-          /* vẫn bị chặn — khách tự bấm nút nhạc */
-        })
-      off()
+    // Lần trước khách đã tắt đi → tôn trọng, đừng bật lại. Cũng không gắn nghe
+    // ngóng gì cả: khách muốn nghe thì tự bấm nút.
+    if (docYThich() === false) return
+
+    let huy = false
+    const thoiNghe = () => {
+      window.removeEventListener('pointerdown', batDau)
+      window.removeEventListener('keydown', batDau)
+      window.removeEventListener('touchstart', batDau)
     }
-    const off = () => {
-      window.removeEventListener('pointerdown', start)
-      window.removeEventListener('keydown', start)
-      window.removeEventListener('touchstart', start)
+    const batDau = () => {
+      thoiNghe()
+      // Khách vừa bấm THẲNG vào nút nhạc để tắt thì đừng bật đè lên. React gọi
+      // onClick của nút TRƯỚC listener trên window nên cờ này đã kịp bật. Không
+      // có nó thì cú bấm tắt đầu tiên bị chính chỗ này bật lại ngay.
+      if (huy || daTuChon.current) return
+      audio.current?.play().then(() => setOn(true)).catch(() => {})
     }
-    window.addEventListener('pointerdown', start, { once: true })
-    window.addEventListener('keydown', start, { once: true })
-    window.addEventListener('touchstart', start, { once: true, passive: true })
-    return off
+
+    // Cách 1 — thử phát luôn.
+    // Hầu hết trình duyệt CHẶN phát tự động có tiếng khi khách chưa thao tác gì:
+    // promise bị từ chối, rơi xuống cách 2. Nhưng máy nào đã từng nghe nhạc trên
+    // tên miền này thì Chrome cho qua, nên vẫn đáng thử — được thì khách nghe
+    // nhạc ngay từ giây đầu, khỏi phải chạm.
+    audio.current
+      ?.play()
+      .then(() => {
+        if (huy) return
+        setOn(true)
+        thoiNghe() // đã chạy rồi thì thôi nghe ngóng
+      })
+      .catch(() => {})
+
+    // Cách 2 — bị chặn thì bắt cú chạm/gõ phím ĐẦU TIÊN, ở bất kỳ đâu trên trang.
+    window.addEventListener('pointerdown', batDau)
+    window.addEventListener('keydown', batDau)
+    window.addEventListener('touchstart', batDau, { passive: true })
+    return () => {
+      huy = true
+      thoiNghe()
+    }
   }, [setOn])
 
   // fade âm lượng cho êm
@@ -126,7 +175,11 @@ export function Music() {
   return (
     <button
       className={`music ${on ? 'on' : 'off'}`}
-      onClick={() => setOn(!on)}
+      onClick={() => {
+        daTuChon.current = true
+        ghiYThich(!on)
+        setOn(!on)
+      }}
       aria-label={on ? 'Tắt nhạc' : 'Bật nhạc'}
       title={on ? 'Tắt nhạc' : 'Bật nhạc'}
       data-interactive
